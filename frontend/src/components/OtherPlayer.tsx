@@ -74,7 +74,7 @@ const OtherPlayer: React.FC<OtherPlayerProps> = ({ player, isCurrentTurn }) => {
 			<div className="flex justify-between text-sm">
 				<span>ウンチ: {player.poops || 0}</span>
 				<span>お金: {player.money}</span>
-				<span>バッジ: {player.badge}</span>
+				<span>バッジ: {player.star}</span>
 			</div>
 		</div>
 	);

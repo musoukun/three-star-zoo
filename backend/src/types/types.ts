@@ -1,4 +1,3 @@
-import { b } from "vite/dist/node/types.d-aGj9QkWt";
 import { ActionState } from "./ActionState";
 import { AnimalColor } from "./AnimalColor";
 import { Effect } from "./AnimalEffect";
@@ -48,8 +47,8 @@ export type Player = {
 	board: Board;
 	money: number;
 	diceResult?: number;
-	badge?: number;
-	ownedAnimals: { [key: string]: number };
+	star?: number;
+	inventory: Animal[];
 	owner?: boolean;
 	startPlayer?: boolean;
 	current?: boolean;

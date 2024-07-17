@@ -39,8 +39,8 @@ export type Player = {
 	board?: Board;
 	diceResult?: number;
 	money?: number;
-	badge?: number;
-	ownedAnimals?: { [key: string]: number };
+	star?: number;
+	inventory?: Animal[];
 	owner?: boolean;
 	startPlayer?: boolean;
 	current?: boolean;
