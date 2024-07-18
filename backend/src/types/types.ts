@@ -2,16 +2,6 @@ import { ActionState } from "./ActionState";
 import { AnimalColor } from "./AnimalColor";
 import { Effect } from "./AnimalEffect";
 
-export type RoomType = {
-	id: string;
-	name: string;
-	password: string;
-	players: Player[];
-	ownerId: string;
-	gameState: GameState | null;
-	version?: number;
-};
-
 export type User = {
 	id: string; // ルームに入室するときにfrontend側で設定するUUID
 	name: string;
@@ -22,9 +12,9 @@ export type Cage = {
 	max: number;
 };
 
-export interface Board {
+export type Board = {
 	[key: string]: Cage;
-}
+};
 
 export type Animal = {
 	id: string;
@@ -54,9 +44,10 @@ export type Player = {
 };
 export interface GameState {
 	players: Player[];
-	currentPlayer: Player | null;
+	currentPlayer?: Player | null;
 	phase: "waiting" | "init" | "main" | "end";
 	roundNumber: number;
+	isTestMode?: boolean;
 }
 
 export type Room = {
@@ -66,4 +57,5 @@ export type Room = {
 	players: Player[] | User[];
 	ownerId: string;
 	gameState: GameState | null;
+	version?: number;
 };

@@ -1,9 +1,8 @@
-// src/components/Room.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import GameBoard from "./GameBoard";
 import animalCardsMock from "./animalCardsMock";
-import type { Player, Room, GameState } from "../types/types";
+import type { Player, Room as RoomType, GameState } from "../types/types";
 import { useSetRecoilState } from "recoil";
 import { gameStateAtom } from "../atoms/atoms";
 import { getOrCreatePlayerId } from "../utils/uuid";
@@ -14,19 +13,26 @@ interface RoomProps {
 	onLeaveRoom: () => void;
 }
 
+/**
+ * ルームコンポーネント
+ * プレイヤーの管理、ゲームの開始、ルームからの退出を処理します
+ */
 const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 	const [players, setPlayers] = useState<Player[]>([]);
 	const [isOwner, setIsOwner] = useState(false);
-	const [gameStarted, setGameStarted] = useState(false);
-	const setGameState = useSetRecoilState(gameStateAtom);
-	const playerId = getOrCreatePlayerId();
+	const [gameStarted, setGameStarted] = useState(false); // ゲームが開始されたかどうか
+	const setGameState = useSetRecoilState(gameStateAtom); // ゲーム状態を更新する関数
+	const playerId = getOrCreatePlayerId(); // プレイヤーIDを取得
 
-	useEffect(() => {
+	/**
+	 * ルーム情報を取得する
+	 */
+	const fetchRoomInfo = useCallback(() => {
 		if (socket) {
 			socket.emit(
 				"getRoomInfo",
 				{ roomId, playerId },
-				(roomInfo: Room | null) => {
+				(roomInfo: RoomType | null) => {
 					if (roomInfo) {
 						setPlayers(roomInfo.players);
 						setIsOwner(roomInfo.ownerId === playerId);
@@ -40,60 +46,90 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 					}
 				}
 			);
-
-			socket.on("roomUpdate", (updatedPlayers: Player[]) => {
-				setPlayers(updatedPlayers);
-				console.log("Room updated, new player list:", updatedPlayers);
-			});
-
-			socket.on("ownerUpdate", (ownerId: string) => {
-				setIsOwner(ownerId === playerId);
-				console.log("Owner updated, new owner ID:", ownerId);
-			});
-
-			socket.on("gameStarted", (initialGameState: GameState) => {
-				setGameState(initialGameState);
-				setGameStarted(true);
-				console.log("Received initial game state:", initialGameState);
-			});
-			// 新しいイベントリスナーを追加
-			socket.on("playerJoined", (newPlayer: Player) => {
-				setPlayers((prevPlayers) => [...prevPlayers, newPlayer]);
-				console.log("New player joined:", newPlayer);
-			});
-
-			socket.on("playerLeft", (leftPlayerId: string) => {
-				setPlayers((prevPlayers) =>
-					prevPlayers.filter((player) => player.id !== leftPlayerId)
-				);
-				console.log("Player left:", leftPlayerId);
-			});
 		}
+	}, [socket, roomId, playerId, setGameState, onLeaveRoom]);
 
+	/**
+	 * ソケットイベントのハンドラーをセットアップする
+	 */
+	const setupSocketHandlers = useCallback(() => {
+		if (!socket) return;
+
+		const handleRoomUpdate = (updatedPlayers: Player[]) => {
+			setPlayers(updatedPlayers);
+			console.log("Room updated, new player list:", updatedPlayers);
+		};
+
+		const handleOwnerUpdate = (ownerId: string) => {
+			setIsOwner(ownerId === playerId);
+			console.log("Owner updated, new owner ID:", ownerId);
+		};
+
+		const handleGameStarted = (initialGameState: GameState) => {
+			setGameState(initialGameState);
+			setGameStarted(true);
+			console.log("Received initial game state:", initialGameState);
+		};
+
+		const handlePlayerJoined = (newPlayer: Player) => {
+			setPlayers((prevPlayers) => [...prevPlayers, newPlayer]);
+			console.log("New player joined:", newPlayer);
+		};
+
+		const handlePlayerLeft = (leftPlayerId: string) => {
+			setPlayers((prevPlayers) =>
+				prevPlayers.filter((player) => player.id !== leftPlayerId)
+			);
+			console.log("Player left:", leftPlayerId);
+		};
+
+		socket.on("roomUpdate", handleRoomUpdate);
+		socket.on("ownerUpdate", handleOwnerUpdate);
+		socket.on("gameStarted", handleGameStarted);
+		socket.on("playerJoined", handlePlayerJoined);
+		socket.on("playerLeft", handlePlayerLeft);
+
+		return () => {
+			socket.off("roomUpdate", handleRoomUpdate);
+			socket.off("ownerUpdate", handleOwnerUpdate);
+			socket.off("gameStarted", handleGameStarted);
+			socket.off("playerJoined", handlePlayerJoined);
+			socket.off("playerLeft", handlePlayerLeft);
+		};
+	}, [socket, playerId, setGameState]);
+
+	// マウント時にルーム情報を取得し、ソケットイベントのハンドラーをセットアップする
+	useEffect(() => {
+		fetchRoomInfo();
+		// socketが変更された場合に再度ルーム情報を取得する
+		const cleanupSocketHandlers = setupSocketHandlers(); // クリーンアップ関数を取得
+
+		// ページを離れる際にルームから退出する
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			socket?.emit("leaveRoom", roomId);
 			event.preventDefault();
-			// event.returnValue = "";
 		};
 
+		// ページを離れる際に確認ダイアログを表示する
 		window.addEventListener("beforeunload", handleBeforeUnload);
 
 		return () => {
-			window.removeEventListener("beforeunload", handleBeforeUnload);
-			if (socket) {
-				socket.off("roomUpdate");
-				socket.off("ownerUpdate");
-				socket.off("gameStarted");
-				socket.off("playerJoined");
-				socket.off("playerLeft");
+			// typeofとしているのは、cleanupSocketHandlersが関数であるかどうかをチェックするため
+			// undefinedの場合は関数を呼び出すとエラーになるため
+			if (typeof cleanupSocketHandlers === "function") {
+				cleanupSocketHandlers();
 			}
+			window.removeEventListener("beforeunload", handleBeforeUnload);
 		};
-	}, [socket, roomId, onLeaveRoom, setGameState]);
+	}, [socket, roomId, fetchRoomInfo, setupSocketHandlers]);
 
-	const startGame = () => {
+	/**
+	 * ゲームを開始する
+	 */
+	const startGame = useCallback(() => {
 		if (socket && isOwner) {
 			console.log("Attempting to start game");
-			const startPlayerIndex = 0; // 一旦固定で先頭プレイヤーをスタートプレイヤーに設定
+			const startPlayerIndex = 0;
 			const updatedPlayers = players.map((player, index) => ({
 				...player,
 				startPlayer: index === startPlayerIndex,
@@ -117,11 +153,13 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 				"Cannot start game: not owner or socket not connected"
 			);
 		}
-	};
+	}, [socket, isOwner, players, roomId, playerId, setGameState]);
 
-	const leaveRoom = () => {
+	/**
+	 * ルームから退出する
+	 */
+	const leaveRoom = useCallback(() => {
 		if (socket) {
-			const playerId = getOrCreatePlayerId();
 			socket.emit(
 				"leaveRoom",
 				{ roomId, playerId },
@@ -137,7 +175,7 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 				}
 			);
 		}
-	};
+	}, [socket, roomId, playerId, onLeaveRoom]);
 
 	if (gameStarted) {
 		return (
@@ -151,51 +189,80 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 		);
 	}
 
-	console.log("isOwner", isOwner);
-	console.log("players.length", players.length);
-
 	return (
 		<div className="container mx-auto">
 			<h1 className="text-4xl font-bold mb-8 text-center">
 				Room: {roomId}
 			</h1>
-			<div className="bg-white p-6 rounded shadow">
-				<h2 className="text-2xl font-semibold mb-4">Players:</h2>
-				<ul className="space-y-2 mb-6">
-					{players.map((player) => (
-						<li
-							key={player.id}
-							className="bg-gray-100 p-2 rounded flex justify-between items-center"
-						>
-							<span>{player.name}</span>
-							{player.id === socket?.id && (
-								<span className="text-blue-500">(You)</span>
-							)}
-							{isOwner && player.id === socket?.id && (
-								<span className="text-green-500">(Owner)</span>
-							)}
-						</li>
-					))}
-				</ul>
-				<div className="flex justify-between">
-					{isOwner && players.length >= 1 && (
-						<button
-							onClick={startGame}
-							className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
-						>
-							Start Game
-						</button>
-					)}
-					<button
-						onClick={leaveRoom}
-						className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
-					>
-						Leave Room
-					</button>
-				</div>
-			</div>
+			<RoomInfo
+				players={players}
+				isOwner={isOwner}
+				socket={socket}
+				startGame={startGame}
+				leaveRoom={leaveRoom}
+			/>
 		</div>
 	);
 };
+
+/**
+ * ルーム情報コンポーネント
+ * プレイヤーリストとゲーム開始/退出ボタンを表示します
+ */
+const RoomInfo: React.FC<{
+	players: Player[];
+	isOwner: boolean;
+	socket: Socket | null;
+	startGame: () => void;
+	leaveRoom: () => void;
+}> = ({ players, isOwner, socket, startGame, leaveRoom }) => (
+	<div className="bg-white p-6 rounded shadow">
+		<h2 className="text-2xl font-semibold mb-4">Players:</h2>
+		<PlayerList players={players} socket={socket} isOwner={isOwner} />
+		<div className="flex justify-between">
+			{isOwner && players.length >= 1 && (
+				<button
+					onClick={startGame}
+					className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+				>
+					Start Game
+				</button>
+			)}
+			<button
+				onClick={leaveRoom}
+				className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+			>
+				Leave Room
+			</button>
+		</div>
+	</div>
+);
+
+/**
+ * プレイヤーリストコンポーネント
+ * ルーム内のプレイヤーを表示します
+ */
+const PlayerList: React.FC<{
+	players: Player[];
+	socket: Socket | null;
+	isOwner: boolean;
+}> = ({ players, socket, isOwner }) => (
+	<ul className="space-y-2 mb-6">
+		{players.map((player) => (
+			<li
+				key={player.id}
+				className="bg-gray-100 p-2 rounded flex justify-between items-center"
+			>
+				<span>{player.name}</span>
+				{player.id === socket?.id && (
+					<span className="text-blue-500">(You)</span>
+				)}
+				{isOwner && player.id === socket?.id && (
+					<span className="text-green-500">(Owner)</span>
+				)}
+			</li>
+		))}
+	</ul>
+);
 
 export default Room;

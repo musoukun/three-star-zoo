@@ -74,11 +74,11 @@ export async function handleJoinRoom(
 		return;
 	}
 
-	const newPlayer: User = {
+	const newPlayer = {
 		id: playerId,
 		name: playerName,
 	};
-	room.players.push(newPlayer as Player);
+	room.players.push(newPlayer as any);
 	await saveRoomToDatabase(prisma, room);
 
 	socket.join(roomId);
@@ -160,7 +160,10 @@ export async function handleCageClick(
 		`Received cageClick: roomId=${roomId}, cageNumber=${cageNumber}, animal=${animal}, playerId=${playerId}`
 	);
 	const room = await getRoomFromDatabase(prisma, roomId);
-	if (!room || !room.gameState) return;
+	if (!room || !room.gameState) {
+		console.log("Failed to find room or gameState");
+		return;
+	}
 
 	const currentPlayer = room.gameState.players.find((p) => p.id === playerId);
 	if (!currentPlayer || currentPlayer.id !== playerId) return;
@@ -168,8 +171,11 @@ export async function handleCageClick(
 	const playerIndex = room.gameState.players.findIndex(
 		(p) => p.id === currentPlayer.id
 	);
-	if (playerIndex === -1 || !room.gameState.players[playerIndex].board)
+
+	if (playerIndex === -1 || !room.gameState.players[playerIndex].board) {
+		console.error("Failed to find player or board");
 		return;
+	}
 
 	const player = room.gameState.players[playerIndex];
 	const board = player.board;
@@ -178,7 +184,16 @@ export async function handleCageClick(
 	const cage = board[cageNumber];
 	if (!cage || cage.animals.includes(animal)) return;
 
-	cage.animals.push(animal);
+	try {
+		cage.animals.push(animal);
+		console.log(
+			`Added animal to cage ${cageNumber} for player ${player.name}`
+		);
+	} catch (error) {
+		console.error("Failed to add animal to cage:", error);
+		return;
+	}
+
 	await saveRoomToDatabase(prisma, room);
 	io.to(roomId).emit("gameStateUpdate", room.gameState);
 	console.log(`Updated cage ${cageNumber} for player ${player.name}`);
@@ -222,7 +237,9 @@ export async function handlePlayerLeave(
 	const room = await getRoomFromDatabase(prisma, roomId);
 	if (!room) return;
 
-	room.players = room.players.filter((player) => player.id !== playerId);
+	room.players = room.players.filter(
+		(player) => player.id !== playerId
+	) as Player[];
 	if (room.players.length === 0) {
 		await removeRoomFromDatabase(prisma, roomId);
 	} else {

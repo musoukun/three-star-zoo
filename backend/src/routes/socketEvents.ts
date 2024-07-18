@@ -8,8 +8,20 @@ import {
 	handleCageClick,
 	handleDiceRoll,
 	handlePlayerLeave,
+	handleStartTestGame,
+	handleResetTestRoom,
 } from "../controller/gameController";
-import { GameService } from "../services/GameService";
+import { RoomService } from "../services/RoomService";
+import {
+	handleAddCoins,
+	handleAddTestPlayer,
+	handleChangePhase,
+	handleFlushAction,
+	handlePlaceAnimal,
+	handlePoopAction,
+	handleSetCurrentPlayer,
+	handleTestRollDice,
+} from "../controller/testGameController";
 
 export function configureSocketEvents(io: Server, prisma: PrismaClient) {
 	io.on("connection", (socket: Socket) => {
@@ -60,5 +72,49 @@ export function configureSocketEvents(io: Server, prisma: PrismaClient) {
 				);
 			}
 		);
+
+		socket.on("startTestGame", async (data, response) => {
+			await handleStartTestGame(data, response);
+		});
+
+		socket.on("resetTestGame", async (data, response) => {
+			await handleResetTestRoom(data, response);
+		});
+
+		socket.on("startTestGame", async (data, response) => {
+			await handleStartTestGame(data, response);
+		});
+
+		socket.on("addTestPlayer", async (data, response) => {
+			await handleAddTestPlayer(data, response);
+		});
+
+		socket.on("setCurrentPlayer", async (data, response) => {
+			await handleSetCurrentPlayer(data, response);
+		});
+
+		socket.on("addCoins", async (data, response) => {
+			await handleAddCoins(data, response);
+		});
+
+		socket.on("placeAnimal", async (data, response) => {
+			await handlePlaceAnimal(data, response);
+		});
+
+		socket.on("changePhase", async (data, response) => {
+			await handleChangePhase(data, response);
+		});
+
+		socket.on("testRollDice", async (data, response) => {
+			await handleTestRollDice(data, response);
+		});
+
+		socket.on("poopAction", async (data, response) => {
+			await handlePoopAction(data, response);
+		});
+
+		socket.on("flushAction", async (data, response) => {
+			await handleFlushAction(data, response);
+		});
 	});
 }

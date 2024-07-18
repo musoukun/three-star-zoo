@@ -102,3 +102,141 @@ AnimalCardListコンポーネントにShop機能を持たせたいです。
 上記が、動物の購入機能と、購入の流れです。
 実装を進めるうえで必要なことがあれば質問してください。
 まずはfrontendの実装から進めてください。
+
+---
+
+はい、この問題はTestGame以外でも発生する可能性があります。特に、通常のゲーム開始や再開時にも同様の問題が起こる可能性があります。以下の点を考慮する必要があります：
+
+データの永続化:
+現在の実装では、ゲーム状態がデータベースに保存されています。これは意図的な設計かもしれませんが、新しいゲームを開始するたびに完全にリセットされないため、前回のゲームデータが残ってしまう可能性があります。
+オブジェクトの参照:
+initialBoard や他の初期状態オブジェクトが参照として使用されている場合、複数のゲームで同じオブジェクトを共有してしまい、意図しない状態の変更が起こる可能性があります。
+トランザクション管理:
+ゲーム状態の更新がトランザクション内で適切に管理されていない場合、部分的な更新や競合状態が発生する可能性があります。
+
+これらの問題に対処するため、以下の改善を提案します：
+
+handleStartGame メソッドの修正:
+
+typescriptCopyasync handleStartGame(
+    roomId: string,
+    playerId: string,
+    players: Player[]
+): Promise<{ success: boolean; gameState: GameState | null }> {
+    try {
+        await this.prisma.$transaction(async (prisma) => {
+            const room = await this.getRoom(roomId, prisma as PrismaClient);
+            if (!this.isValidGameStart(room, playerId, players)) {
+                return { success: false, gameState: null };
+            }
+
+            // ルームのゲーム状態を完全にリセット
+            room.gameState = null;
+            await saveRoomToDatabase(prisma as PrismaClient, room);
+
+            this.gameState = this.initializeGameState(players);
+            await this.saveAndEmitGameState(room, roomId, prisma as PrismaClient);
+
+            return { success: true, gameState: this.gameState };
+        });
+    } catch (error) {
+        console.error("Failed to start game:", error);
+        return { success: false, gameState: null };
+    }
+}
+
+initializeGameState メソッドの修正:
+
+typescriptCopyprivate initializeGameState(players: Player[]): GameState {
+    const initializedPlayers = players.map((player, index) => ({
+        ...player,
+        action: ActionState.INIT,
+        board: JSON.parse(JSON.stringify(initialBoard)), // ディープコピーを作成
+        poops: 0,
+        money: 4,
+        star: 0,
+        turnCount: 0,
+        turnOrder: index + 1,
+        startPlayer: index === 0,
+        current: index === 0,
+        inventory: [RessaPanda, Penguin].map(animal => ({ ...animal })), // 動物オブジェクトのコピーを作成
+    }));
+
+    return {
+        players: initializedPlayers,
+        currentPlayer: this.getStartPlayer(initializedPlayers),
+        phase: "init",
+        roundNumber: 1,
+    };
+}
+
+データベースのリセット機能の追加:
+開発環境や必要に応じてデータベースをリセットする機能を追加することを検討してください。これにより、完全にクリーンな状態からゲームを開始できます。
+トランザクション管理の強化:
+すべてのゲーム状態の更新操作をトランザクション内で行うようにし、整合性を保つようにしてください。
+
+これらの修正を適用することで、TestGame以外の通常のゲームでも、各ゲーム開始時に適切にデータがリセットされ、前回のゲームデータの影響を受けないようになるはずです。また、オブジェクトの深いコピーを作成することで、異なるゲーム間でのデータの意図しない共有を防ぐことができます。
+
+
+>テストモード時の操作を特別に扱い、通常のゲームロジックとは別に処理します。これにより、チート対策を維持しつつ、テストに必要な柔軟性を確保できます。
+
+上記の実装に関して、テストモード専用のパネル内の処理を下記のようにしてほしいです。
+
+テストゲーム開始
+
+この処理は現在の部屋のIDを持つroomテーブルのレコードのdataを再作成（ゲーム開始時のデータで上書き）してください
+
+プレイヤー追加
+
+プレイヤー追加は、ゲーム開始前にのみ行えるようにしてください。
+
+frontendで追加したいプレイヤー名の情報をstate管理して追加しておきます。ゲーム開始時に、nameだけを入力した名前にして、最大3名まで追加できるようにしてください。
+
+const testPlayer: Player = { id: playerId, name: "この名前は変更する", action: ActionState.INIT, turnCount: 0, poops: 0, money: 4, star: 0, inventory: [RessaPanda, Penguin], board: JSON.parse(JSON.stringify(initialBoard)), current: true, turnOrder: 0, startPlayer: true, };
+
+プレイヤーを選択
+
+player.currentを選択したプレイヤーをtrueにして、それ以外をfalseにします。
+
+コインを追加
+
+現在ターン中のプレイヤーにコインを、任意の枚数追加します。
+
+動物を配置
+
+選択した動物を、指定したAreaboardのcageに追加します。
+
+Phaseを選択
+
+選択したPhaseにgameState.Phaseを変更
+
+アクションを実行メニューを用意して下記のボタンを追加する。（新しく追加）
+
+サイコロを振る
+
+この処理は既存のGameStateのサイコロを振る処理を行う（handleDiceRoll）を、呼び出してください。
+
+うんちをもらう
+
+poopアクションを呼び出します（後で実装）
+
+効果処理を行う
+
+incomeActionを呼び出します（後で実装）
+
+動物を買う/星を買う
+
+tradeActionを呼び出します（後で実装）
+
+うんちを掃除する
+
+flushActionを呼び出します（後で実装）
+
+勝利条件をチェック
+
+勝利条件をチェックする処理を呼び出します（後で実装、名前を考える）
+
+ # その他注意点
+記載した処理内容は、すべてbackendでgameStateを加工してください。
+Test専用操作を行うTestGameServiceを作成して、専用のソケットポイントを作成します。
+上記の内容で、TestGameServiceを作成して下さい。

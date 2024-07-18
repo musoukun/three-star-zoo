@@ -25,9 +25,9 @@ export type Cage = {
 	max: number;
 };
 
-export interface Board {
+export type Board = {
 	[key: string]: Cage;
-}
+};
 
 export type Player = {
 	id: string | undefined;

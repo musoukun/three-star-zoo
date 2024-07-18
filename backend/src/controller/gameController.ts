@@ -89,3 +89,22 @@ export async function handleDiceRoll(
 export async function handlePlayerLeave(playerId: string, roomId: string) {
 	await roomService.handlePlayerLeave(playerId, roomId);
 }
+
+export async function handleStartTestGame(
+	data: { roomId: string; playerId: string },
+	response: (success: boolean, gameState: GameState | null) => void
+) {
+	const result = await gameService.handleStartTestGame(
+		data.roomId,
+		data.playerId
+	);
+	response(result.success, result.gameState);
+}
+
+export async function handleResetTestRoom(
+	data: { roomId: string },
+	response: () => void
+) {
+	await roomService.resetTestRoom(data.roomId);
+	response();
+}

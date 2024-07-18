@@ -1,4 +1,3 @@
-import React from "react";
 import { AnimalCard as AnimalCardType } from "../types/types";
 
 interface AnimalCardProps {

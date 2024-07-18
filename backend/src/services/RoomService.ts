@@ -1,18 +1,36 @@
 import { Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
-import { Player, Room, User } from "../types/types";
+import { Player, Room as RoomType, User } from "../types/types";
 import {
 	getRoomFromDatabase,
 	saveRoomToDatabase,
 	removeRoomFromDatabase,
 	getRoomList,
 } from "../repository/roomRepository";
-import { initialBoard } from "../utils/initialBoard";
 import { io } from "../server";
-
+/**
+ * ルームに関するサービスクラス
+ * @param prisma
+ * @returns
+ * @constructor
+ * @method handleCreateRoom	ルームを作成する
+ * @method handleJoinRoom	ルームに参加する
+ * @method handlePlayerLeave	プレイヤーがルームを離れる
+ * @method generateRoomId	ルームIDを生成する
+ */
 export class RoomService {
 	constructor(private prisma: PrismaClient) {}
 
+	/**
+	 * ルームを作成する
+	 *
+	 * @param socket
+	 * @param name ルーム名
+	 * @param password パスワード
+	 * @param playerName プレイヤー名
+	 * @param playerId プレイヤーID
+	 * @returns roomId
+	 */
 	async handleCreateRoom(
 		socket: Socket,
 		name: string,
@@ -25,7 +43,7 @@ export class RoomService {
 			id: playerId,
 			name: playerName,
 		};
-		const newRoom: Room = {
+		const newRoom: RoomType = {
 			id: roomId,
 			name,
 			password,
@@ -46,6 +64,16 @@ export class RoomService {
 		return { roomId };
 	}
 
+	/**
+	 * ルームに参加する
+	 *
+	 * @param socket
+	 * @param roomId ルームID
+	 * @param password パスワード
+	 * @param playerName プレイヤー名
+	 * @param playerId プレイヤーID
+	 * @returns 成功したかどうか
+	 */
 	async handleJoinRoom(
 		socket: Socket,
 		roomId: string,
@@ -69,7 +97,7 @@ export class RoomService {
 			id: playerId,
 			name: playerName,
 		};
-		room.players.push(newPlayer as Player);
+		room.players.push(newPlayer as any);
 		await saveRoomToDatabase(this.prisma, room);
 
 		socket.join(roomId);
@@ -83,11 +111,19 @@ export class RoomService {
 		return true;
 	}
 
+	/**
+	 * プレイヤーがルームを離れる
+	 * @param playerId
+	 * @param roomId
+	 * @returns
+	 */
 	async handlePlayerLeave(playerId: string, roomId: string): Promise<void> {
 		const room = await getRoomFromDatabase(this.prisma, roomId);
 		if (!room) return;
 
-		room.players = room.players.filter((player) => player.id !== playerId);
+		room.players = room.players.filter(
+			(player) => player.id !== playerId
+		) as Player[];
 
 		if (room.players.length === 0) {
 			await removeRoomFromDatabase(this.prisma, roomId);
@@ -105,6 +141,34 @@ export class RoomService {
 		io.emit("roomList", await getRoomList(this.prisma));
 	}
 
+	/**
+	 * テスト用ルームをリセットする
+	 * @param roomId
+	 * @returns
+	 */
+	async resetTestRoom(roomId: string): Promise<boolean> {
+		try {
+			const room = await getRoomFromDatabase(this.prisma, roomId);
+			if (!room) return false;
+
+			room.gameState = null;
+			await saveRoomToDatabase(this.prisma, room);
+
+			io.to(roomId).emit("roomReset");
+			return true;
+		} catch (error) {
+			console.error("Failed to reset test room:", error);
+			return false;
+		}
+	}
+
+	/**
+	 * ルームIDを生成する
+	 * @param playerId
+	 * @param roomId
+	 * @param players
+	 * @returns
+	 */
 	private generateRoomId(): string {
 		return Math.random().toString(36).substring(2, 8).toUpperCase();
 	}

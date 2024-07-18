@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { RoomType, User } from "../types/types";
+import { Room as RoomType, User } from "../types/types";
 import { io } from "../server";
 
 export async function getRoomFromDatabase(

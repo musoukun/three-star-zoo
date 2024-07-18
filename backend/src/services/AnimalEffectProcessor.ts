@@ -2,9 +2,28 @@ import { GameState, Player, Animal, Board } from "../types/types";
 import { Effect } from "../types/AnimalEffect";
 import { animalMap } from "../types/Animal/index";
 
+/**
+ * AnimalEffectProcessor class
+ * 動物カードの効果を処理するクラス
+ * @param {GameState} gameState - ゲームの状態
+ * @returns {GameState} - 更新されたゲーム状態
+ * @constructor	- ゲームの状態を初期化する
+ * @method processEffects - 動物カードの効果を処理する
+ * @method processPlayerEffects - プレイヤーの動物カードの効果を処理する
+ * @method applyEffect - 動物カードの効果を適用する
+ * @method evaluateCreationIf - 動物カードの効果を評価する
+ * @method calculateBuffAmount - 動物カードの効果を計算する
+ * @method countAnimalInBoard - ボード上の動物カードを数える
+ */
 export class AnimalEffectProcessor {
 	constructor(private gameState: GameState) {}
 
+	/**
+	 * 動物カードの効果を処理する
+	 * @param diceResult
+	 * @param currentPlayerId
+	 * @returns
+	 */
 	processEffects(diceResult: number, currentPlayerId: string): GameState {
 		const updatedGameState = { ...this.gameState };
 		const currentPlayerIndex = updatedGameState.players.findIndex(
@@ -37,6 +56,14 @@ export class AnimalEffectProcessor {
 		return updatedGameState;
 	}
 
+	/**
+	 * プレイヤーの動物カードの効果を処理する
+	 * @param player
+	 * @param diceResult
+	 * @param isOtherPlayer
+	 * @param isEndTiming
+	 * @returns
+	 */
 	private processPlayerEffects(
 		player: Player,
 		diceResult: number,
@@ -50,6 +77,7 @@ export class AnimalEffectProcessor {
 			const animalData = animalMap[animal.id as keyof typeof animalMap];
 			if (!animalData || !animalData.effect) return;
 
+			// 他のプレイヤーの効果を処理するか、効果のタイミングが一致しない場合はスキップ
 			if (
 				(isOtherPlayer && !animalData.effect.global) ||
 				(isEndTiming && animalData.effect.timing !== "end") ||
@@ -62,11 +90,18 @@ export class AnimalEffectProcessor {
 		});
 	}
 
+	/**
+	 * 動物カードの効果を適用する
+	 * @param player
+	 * @param effect
+	 */
 	private applyEffect(player: Player, effect: Effect) {
+		// コインを増やす
 		if (effect.creation) {
 			player.money += effect.creation;
 		}
 
+		// 条件に応じてコインを増やす
 		if (effect.creationIf) {
 			const creationAmount = this.evaluateCreationIf(
 				player,
@@ -75,6 +110,7 @@ export class AnimalEffectProcessor {
 			player.money += creationAmount;
 		}
 
+		// 動物カードの効果によってコインを増やす
 		if (effect.buff) {
 			const [amount, animalId, type] = effect.buff;
 			const buffAmount = this.calculateBuffAmount(
@@ -86,6 +122,7 @@ export class AnimalEffectProcessor {
 			player.money += buffAmount;
 		}
 
+		// 追加で動物カードの効果によってコインを増やす
 		if (effect.bonusbuff) {
 			const [amount, animalId, type] = effect.bonusbuff;
 			const bonusBuffAmount = this.calculateBuffAmount(
@@ -100,6 +137,12 @@ export class AnimalEffectProcessor {
 		// Note: steal and choice effects are not implemented here as they require frontend interaction
 	}
 
+	/**
+	 * 条件式に応じて効果を処理する
+	 * @param player
+	 * @param condition
+	 * @returns
+	 */
 	private evaluateCreationIf(player: Player, condition: string[]): number {
 		const [animalId, operator, count, _, trueValue, __, falseValue] =
 			condition;
@@ -131,6 +174,14 @@ export class AnimalEffectProcessor {
 		}
 	}
 
+	/**
+	 * 動物カードの効果を計算する
+	 * @param player
+	 * @param animalId
+	 * @param amount
+	 * @param type
+	 * @returns
+	 */
 	private calculateBuffAmount(
 		player: Player,
 		animalId: string,
@@ -145,6 +196,12 @@ export class AnimalEffectProcessor {
 				: 0;
 	}
 
+	/**
+	 * ボード上の動物カードを数える
+	 * @param board
+	 * @param animalId
+	 * @returns
+	 */
 	private countAnimalInBoard(board: Board, animalId: string): number {
 		return Object.values(board).reduce((count, cage) => {
 			return (
