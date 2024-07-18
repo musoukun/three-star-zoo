@@ -84,11 +84,13 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 			phase === "init" &&
 			action === ActionState.INIT
 		) {
-			const animalObject: Animal = {
-				id: selectedAnimal,
-			};
-			onCageClick(cageNumber, animalObject);
-			setSelectedAnimal(null);
+			const animalObject = inventory.find(
+				(animal) => animal.id === selectedAnimal
+			);
+			if (animalObject) {
+				onCageClick(cageNumber, animalObject);
+				setSelectedAnimal(null);
+			}
 		}
 	};
 

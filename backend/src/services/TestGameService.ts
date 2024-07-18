@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { Player, GameState, Animal, Room } from "../types/types";
+import { Player, GameState, Animal, GameRoom } from "../types/types";
 import { ActionState } from "../types/ActionState";
 import { initialBoard } from "../utils/initialBoard";
 import { RessaPanda } from "../types/Animal/RessaPanda";
@@ -20,6 +20,8 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
+		// todo: プレイヤーの一覧をセットする
+		// テスト用のプレイヤー一覧を
 		const initialGameState: GameState = {
 			players: [],
 			phase: "waiting",
@@ -27,10 +29,10 @@ export class TestGameService {
 			isTestMode: true,
 		};
 
-		room.data = JSON.stringify(initialGameState);
+		// Roomを初期化
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { data: JSON.stringify(initialGameState) },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", initialGameState);

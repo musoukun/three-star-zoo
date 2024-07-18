@@ -50,7 +50,9 @@ export interface GameState {
 	isTestMode?: boolean;
 }
 
-export type Room = {
+export type Phase = "waiting" | "init" | "main" | "end";
+
+export type GameRoom = {
 	id: string;
 	name: string;
 	password: string;
@@ -59,3 +61,5 @@ export type Room = {
 	gameState: GameState | null;
 	version?: number;
 };
+
+export { ActionState };

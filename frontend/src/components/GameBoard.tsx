@@ -144,14 +144,14 @@ const GameBoard: React.FC<GameBoardProps> = ({
 				});
 				socket.emit(
 					"cageClick",
-					{ roomId, cageNumber, animalId: animal.id, playerId },
+					{ roomId, cageNumber, animal, playerId },
 					handleCageClickResponse
 				);
 			} catch (e) {
 				console.error(e);
 			}
 		},
-		[socket, roomId, playerId, localVersion, updateGameState]
+		[socket, roomId, playerId]
 	);
 
 	/**

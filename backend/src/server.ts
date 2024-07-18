@@ -5,7 +5,7 @@ import cors from "cors";
 import { PrismaClient } from "@prisma/client";
 import { configureSocketEvents } from "./routes/socketEvents";
 import { corsOptions } from "./config";
-import { getRoomList } from "./repository/roomRepository";
+import { getRoomList } from "./repository/RoomRepository";
 
 const prisma = new PrismaClient();
 const app = express();

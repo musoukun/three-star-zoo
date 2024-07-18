@@ -53,6 +53,7 @@ export type Room = {
 	players: Player[];
 	ownerId: string;
 	gameState: GameState | null;
+	prevData?: GameState | null;
 };
 
 export type GameState = {

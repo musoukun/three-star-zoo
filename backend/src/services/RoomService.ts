@@ -1,13 +1,14 @@
 import { Socket } from "socket.io";
-import { PrismaClient } from "@prisma/client";
-import { Player, Room as RoomType, User } from "../types/types";
+import { PrismaClient, Room } from "@prisma/client";
+import { GameState, Player, GameRoom, User } from "../types/types";
 import {
 	getRoomFromDatabase,
 	saveRoomToDatabase,
 	removeRoomFromDatabase,
 	getRoomList,
-} from "../repository/roomRepository";
+} from "../repository/RoomRepository";
 import { io } from "../server";
+
 /**
  * ルームに関するサービスクラス
  * @param prisma
@@ -43,7 +44,7 @@ export class RoomService {
 			id: playerId,
 			name: playerName,
 		};
-		const newRoom: RoomType = {
+		const newRoom: GameRoom = {
 			id: roomId,
 			name,
 			password,
@@ -171,5 +172,48 @@ export class RoomService {
 	 */
 	private generateRoomId(): string {
 		return Math.random().toString(36).substring(2, 8).toUpperCase();
+	}
+
+	/**
+	 * ルームリストを取得する
+	 * @returns
+	 */
+	async getRoomById(roomId: string): Promise<Room | null> {
+		const room: Room | null = await this.prisma.room.findUnique({
+			where: { id: roomId },
+		});
+
+		if (!room) return null;
+
+		return room as Room;
+	}
+
+	/**
+	 * ルームのゲーム状態を更新する
+	 * @param roomId
+	 * @param gameState
+	 * @returns
+	 */
+	async updateRoomWithGameState(
+		roomId: string,
+		gameState: GameState
+	): Promise<GameState> {
+		const room = await this.prisma.room.findUnique({
+			where: { id: roomId },
+		});
+		if (!room || !room.data) {
+			throw new Error("Room not found");
+		}
+
+		const updatedRoom = await this.prisma.room.update({
+			where: { id: roomId },
+			data: {
+				prevData: room.data,
+				data: JSON.stringify(gameState), // GameStateをJSON文字列に変換, // TypeScriptの型チェックを回避するためにanyを使用
+				version: { increment: 1 },
+			},
+		});
+
+		return updatedRoom.data as unknown as GameState;
 	}
 }

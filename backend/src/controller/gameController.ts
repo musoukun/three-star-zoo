@@ -1,110 +1,103 @@
-import { Socket } from "socket.io";
-import { PrismaClient } from "@prisma/client";
-import { Player, GameState, Animal } from "../types/types";
+// GameController.ts
+import { PrismaClient, Room } from "@prisma/client";
 import { GameService } from "../services/GameService";
 import { RoomService } from "../services/RoomService";
+import { GameState, Player, Animal } from "../types/types";
 
 const prisma = new PrismaClient();
-const gameService = new GameService(prisma);
-const roomService = new RoomService(prisma);
 
-export async function handleCreateRoom(
-	socket: Socket,
-	data: {
-		name: string;
-		password: string;
-		playerName: string;
-		playerId: string;
-	},
-	response: (data: { roomId: string } | null) => void
-) {
-	const result = await roomService.handleCreateRoom(
-		socket,
-		data.name,
-		data.password,
-		data.playerName,
-		data.playerId
-	);
-	response(result);
-}
+export class GameController {
+	constructor(
+		private gameService: GameService = new GameService(),
+		private roomService: RoomService = new RoomService(prisma)
+	) {}
 
-export async function handleJoinRoom(
-	socket: Socket,
-	data: {
-		roomId: string;
-		password: string;
-		playerName: string;
-		playerId: string;
-	},
-	response: (success: boolean) => void
-) {
-	const success = await roomService.handleJoinRoom(
-		socket,
-		data.roomId,
-		data.password,
-		data.playerName,
-		data.playerId
-	);
-	response(success);
-}
+	async handleStartGame(
+		roomId: string,
+		playerId: string,
+		players: Player[],
+		response: (success: boolean, gameState: GameState | null) => void
+	): Promise<void> {
+		const room = await this.roomService.getRoomById(roomId);
+		if (!room) {
+			throw new Error("Room not found");
+		}
+		//todo 後でチェック処理に使用するかも
+		console.log("ゲーム開始した人", playerId);
+		const initialGameState: GameState =
+			this.gameService.initializeGameState(players);
+		const updatedGameState: GameState =
+			await this.roomService.updateRoomWithGameState(
+				room.id,
+				initialGameState
+			);
 
-export async function handleStartGame(
-	data: { roomId: string; playerId: string; players: Player[] },
-	response: (success: boolean, gameState: GameState | null) => void
-) {
-	const result = await gameService.handleStartGame(
-		data.roomId,
-		data.playerId,
-		data.players
-	);
-	response(result.success, result.gameState);
-}
+		response(true, updatedGameState as unknown as GameState);
+	}
 
-export async function handleCageClick(
-	data: {
-		roomId: string;
-		cageNumber: string;
-		animalId: string;
-		playerId: string;
-	},
-	callback: (success: boolean, gameState: GameState | null) => void
-) {
-	await gameService.handleCageClick(
-		data.roomId,
-		data.cageNumber,
-		data.animalId,
-		data.playerId,
-		callback
-	);
-}
-export async function handleDiceRoll(
-	roomId: string,
-	playerId: string,
-	diceCount: number,
-	callback: (success: boolean) => void
-) {
-	await gameService.handleDiceRoll(roomId, playerId, diceCount, callback);
-}
+	async handleCageClick(
+		roomId: string,
+		playerId: string,
+		cageNumber: string,
+		animal: Animal
+	): Promise<GameState> {
+		const room: Room | null = await this.roomService.getRoomById(roomId);
+		if (!room || !room.data) {
+			throw new Error("Room or game state not found");
+		}
 
-export async function handlePlayerLeave(playerId: string, roomId: string) {
-	await roomService.handlePlayerLeave(playerId, roomId);
-}
+		this.gameService.validateGameStateIntegrity(room.data, room.prevData);
 
-export async function handleStartTestGame(
-	data: { roomId: string; playerId: string },
-	response: (success: boolean, gameState: GameState | null) => void
-) {
-	const result = await gameService.handleStartTestGame(
-		data.roomId,
-		data.playerId
-	);
-	response(result.success, result.gameState);
-}
+		let updatedGameState = this.gameService.placeAnimal(
+			room.data as unknown as GameState,
+			playerId,
+			cageNumber,
+			animal
+		);
+		updatedGameState = this.gameService.updatePlayerAction(
+			updatedGameState,
+			playerId,
+			"poop"
+		);
 
-export async function handleResetTestRoom(
-	data: { roomId: string },
-	response: () => void
-) {
-	await roomService.resetTestRoom(data.roomId);
-	response();
+		if (this.gameService.isInitialPlacementComplete(updatedGameState)) {
+			updatedGameState = this.gameService.updateGamePhase(
+				updatedGameState,
+				"main"
+			);
+		}
+
+		updatedGameState = this.gameService.moveToNextPlayer(updatedGameState);
+
+		return await this.roomService.updateRoomWithGameState(
+			room.id,
+			updatedGameState
+		);
+	}
+
+	async handleDiceRoll(roomId: string, playerId: string): Promise<GameState> {
+		const room: Room | null = await this.roomService.getRoomById(roomId);
+		if (!room || !room.data) {
+			throw new Error("Room or game state not found");
+		}
+
+		this.gameService.validateGameStateIntegrity(room.data, room.prevData);
+
+		let updatedGameState = this.gameService.rollDice(
+			room.data as unknown as GameState,
+			playerId
+		);
+		updatedGameState = this.gameService.updatePlayerAction(
+			updatedGameState,
+			playerId,
+			"trade"
+		);
+
+		return await this.roomService.updateRoomWithGameState(
+			room.id,
+			updatedGameState
+		);
+	}
+
+	// 他のゲームアクションハンドラーをここに追加...
 }

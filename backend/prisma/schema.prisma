@@ -15,6 +15,8 @@ datasource db {
 }
 
 model Room {
-  id   String @id
-  data Json
+  id       String @id
+  data     Json
+  prevData Json?
+  version  Int
 }
