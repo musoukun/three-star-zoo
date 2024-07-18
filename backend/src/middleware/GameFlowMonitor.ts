@@ -130,21 +130,23 @@ function isPlayerActionComplete(player: Player): boolean {
 }
 
 function isInitPhaseComplete(player: Player): boolean {
-	if (!player.board || !player.ownedAnimals) return false;
+	if (!player.board || !player.inventory) return false;
 
-	const placedAnimals = {
-		RessaPanda: 0,
-		Penguin: 0,
-	};
+	const placedAnimals = player.inventory.reduce(
+		(acc, animal) => {
+			acc[animal.id] = 0;
+			return acc;
+		},
+		{} as { [key: string]: number }
+	);
 
 	Object.values(player.board).forEach((cage) => {
 		cage.animals.forEach((animal) => {
-			if (animal.id === "RessaPanda") placedAnimals.RessaPanda++;
-			if (animal.id === "Penguin") placedAnimals.Penguin++;
+			placedAnimals[animal.id]++;
 		});
 	});
 
-	return placedAnimals.RessaPanda === 1 && placedAnimals.Penguin === 1;
+	return player.inventory.every((animal) => placedAnimals[animal.id] === 1);
 }
 
 function handleEndPhase(gameState: GameState) {

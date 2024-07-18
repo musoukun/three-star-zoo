@@ -162,7 +162,7 @@ export async function handleCageClick(
 	const room = await getRoomFromDatabase(prisma, roomId);
 	if (!room || !room.gameState) return;
 
-	const currentPlayer = room.gameState.currentPlayer;
+	const currentPlayer = room.gameState.players.find((p) => p.id === playerId);
 	if (!currentPlayer || currentPlayer.id !== playerId) return;
 
 	const playerIndex = room.gameState.players.findIndex(
@@ -197,7 +197,7 @@ export async function handleActionComplete(
 	);
 	const nextPlayerIndex =
 		(currentPlayerIndex + 1) % room.gameState.players.length;
-	room.gameState.currentPlayer = room.gameState.players[nextPlayerIndex];
+	// room.gameState.currentPlayer = room.gameState.players[nextPlayerIndex];
 
 	if (
 		room.gameState.players.every(

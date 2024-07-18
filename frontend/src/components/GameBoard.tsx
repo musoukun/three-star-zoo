@@ -38,6 +38,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
 	const updateGameState = useCallback(
 		(newGameState: GameState, version: number) => {
+			// この処理の説明：新しいゲーム状態がローカルの状態よりも新しい場合、ローカルの状態を更新する
 			if (version > localVersion) {
 				console.log("Updating game state:", newGameState);
 				setGameState(newGameState);
@@ -66,7 +67,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 			);
 			if (myPlayer) {
 				setMyPlayerData(myPlayer);
-				setIsCurrentTurn(gameState.currentPlayer?.id === playerId);
+				setIsCurrentTurn(myPlayer.current as boolean);
 			}
 		}
 	}, [gameState, playerId]);
@@ -172,6 +173,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 						roomId={roomId}
 						playerId={playerId}
 						diceResult={myPlayerData.diceResult || null}
+						inventory={myPlayerData.inventory as Animal[]}
 					/>
 				)}
 			</div>

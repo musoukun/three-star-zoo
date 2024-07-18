@@ -16,7 +16,7 @@ export type Animal = {
 	poops?: number;
 	color?: AnimalColor[];
 	effect?: Effect;
-	inventory?: number;
+	inventory?: Animal[];
 	global?: boolean;
 };
 

@@ -17,17 +17,6 @@ export type User = {
 	name: string;
 };
 
-export type Animal = {
-	id: string;
-	name: string;
-	cost: number;
-	poops: number;
-	color: AnimalColor[];
-	effect: Effect;
-	inventory: number;
-	global: boolean;
-};
-
 export type Cage = {
 	animals: Animal[];
 	max: number;
@@ -37,23 +26,32 @@ export interface Board {
 	[key: string]: Cage;
 }
 
+export type Animal = {
+	id: string;
+	name?: string; // nameをオプショナルに変更
+	cost?: number;
+	poops?: number;
+	color?: AnimalColor[];
+	effect?: Effect;
+	global?: boolean;
+};
+
 export type Player = {
 	id: string | undefined;
 	name: string;
-	action: ActionState;
-	turnCount?: number;
-	turnOrder?: number;
-	poops?: number;
-	board: Board;
-	money: number;
-	diceResult?: number;
-	star?: number;
+	action: ActionState; // actionをオプショナルから必須に変更
+	turnCount: number; // turnCountを必須に変更
+	turnOrder: number; // turnOrderを必須に変更
+	poops: number; // poopsを必須に変更
+	board: Board; // boardを必須に変更
+	money: number; // moneyを必須に変更
+	star: number; // starを必須に変更
 	inventory: Animal[];
+	diceResult?: number;
 	owner?: boolean;
-	startPlayer?: boolean;
-	current?: boolean;
+	startPlayer: boolean; // startPlayerを必須に変更
+	current: boolean; // currentを必須に変更
 };
-
 export interface GameState {
 	players: Player[];
 	currentPlayer: Player | null;

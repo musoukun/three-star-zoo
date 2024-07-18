@@ -15,6 +15,9 @@ import {
 } from "../middleware/GameFlowMonitor";
 import { ActionState } from "../types/ActionState";
 import { AnimalEffectProcessor } from "./AnimalEffectProcessor";
+import { RessaPanda } from "../types/Animal/RessaPanda";
+import { Penguin } from "../types/Animal/Penguin";
+import { c } from "vite/dist/node/types.d-aGj9QkWt";
 
 export class GameService {
 	constructor(private prisma: PrismaClient) {}
@@ -36,12 +39,12 @@ export class GameService {
 			board: initialBoard,
 			poops: 0,
 			money: 4,
-			badge: 0,
+			star: 0,
 			turnCount: 0,
 			turnOrder: index + 1,
 			startPlayer: index === 0,
 			current: index === 0,
-			ownedAnimals: { RessaPanda: 1, Penguin: 1 },
+			inventory: [RessaPanda, Penguin],
 		}));
 
 		const getStartplayer = (players: Player[]) => {
@@ -72,84 +75,96 @@ export class GameService {
 		callback: (success: boolean, gameState: GameState | null) => void
 	): Promise<void> {
 		// prismaのtimeout時間を設定したい↓
-		this.prisma.$transaction(
-			async (transactionPrisma) => {
-				const room = await getRoomFromDatabase(
-					transactionPrisma as PrismaClient,
-					roomId
-				);
-				if (!room || !room.gameState) {
-					callback(false, null);
-					return;
-				}
+		try {
+			this.prisma.$transaction(
+				async (transactionPrisma) => {
+					const room = await getRoomFromDatabase(
+						transactionPrisma as PrismaClient,
+						roomId
+					);
+					if (!room || !room.gameState) {
+						callback(false, null);
+						return;
+					}
 
-				const currentPlayer = room.gameState.currentPlayer;
-				if (!currentPlayer || currentPlayer.id !== playerId) {
-					callback(false, null);
-					return;
-				}
+					const currentPlayer = room.gameState.players.find(
+						(p) => p.current
+					);
+					if (!currentPlayer || currentPlayer.id !== playerId) {
+						callback(false, null);
+						return;
+					}
 
-				const playerIndex = room.gameState.players.findIndex(
-					(p) => p.id === currentPlayer.id
-				);
-				if (
-					playerIndex === -1 ||
-					!room.gameState.players[playerIndex].board
-				) {
-					callback(false, null);
-					return;
-				}
+					const playerIndex = room.gameState.players.findIndex(
+						(p) => p.id === currentPlayer.id
+					);
+					if (
+						playerIndex === -1 ||
+						!room.gameState.players[playerIndex].board
+					) {
+						callback(false, null);
+						return;
+					}
 
-				const player = room.gameState.players[playerIndex];
-				const board = player.board;
-				if (!board || !(cageNumber in board)) {
-					callback(false, null);
-					return;
-				}
+					const player = room.gameState.players[playerIndex];
+					const board = player.board;
+					if (!board || !(cageNumber in board)) {
+						callback(false, null);
+						return;
+					}
 
-				const cage = board[cageNumber];
-				console.log("Received animalId:", animalId);
-				const animalObject =
-					animalMap[animalId as keyof typeof animalMap];
-				if (!animalObject) {
-					callback(false, null);
-					return;
-				}
+					const cage = board[cageNumber];
+					console.log("Received animalId:", animalId);
+					const animalObject =
+						animalMap[animalId as keyof typeof animalMap];
+					if (!animalObject) {
+						callback(false, null);
+						return;
+					}
 
-				if (
-					!cage.animals.some(
-						(animal) => animal.id === animalObject.id
-					)
-				) {
-					if (player.ownedAnimals[animalId] > 0) {
-						player.ownedAnimals[animalId]--;
-						cage.animals.push(animalObject as Animal);
-
-						room.gameState = gameProgressMiddleware(room.gameState);
-						room.version = (room.version || 0) + 1;
-						await saveRoomToDatabase(
-							transactionPrisma as PrismaClient,
-							room
+					if (
+						!cage.animals.some(
+							(animal) => animal.id === animalObject.id
+						)
+					) {
+						const animalIndex = player.inventory.findIndex(
+							(animal) => animal.id === animalId
 						);
-						io.to(roomId).emit(
-							"gameStateUpdate",
-							room.gameState,
-							room.version
-						);
-						callback(true, room.gameState);
+						if (animalIndex !== -1) {
+							player.inventory.splice(animalIndex, 1);
+							cage.animals.push(animalObject as Animal);
+
+							room.gameState = gameProgressMiddleware(
+								room.gameState
+							);
+							room.version = (room.version || 0) + 1;
+							await saveRoomToDatabase(
+								transactionPrisma as PrismaClient,
+								room
+							);
+							io.to(roomId).emit(
+								"gameStateUpdate",
+								room.gameState,
+								room.version
+							);
+							callback(true, room.gameState);
+						} else {
+							callback(false, null);
+						}
 					} else {
 						callback(false, null);
 					}
-				} else {
-					callback(false, null);
+				},
+				{
+					timeout: 400000, // Set timeout to 10 seconds (10000 ms)
+					maxWait: 15000, // Optional: Set maximum wait time to 15 seconds
+					// isolationLevel: Prisma.TransactionIsolationLevel.Serializable, // Optional: Set isolation level
 				}
-			},
-			{
-				timeout: 400000, // Set timeout to 10 seconds (10000 ms)
-				maxWait: 15000, // Optional: Set maximum wait time to 15 seconds
-				// isolationLevel: Prisma.TransactionIsolationLevel.Serializable, // Optional: Set isolation level
-			}
-		);
+			);
+		} catch (error) {
+			console.error("database transaction failed:", error);
+			callback(false, null);
+		}
 	}
 
 	async handleTurnComplete(roomId: string, playerId: string): Promise<void> {

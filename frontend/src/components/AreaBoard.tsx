@@ -15,6 +15,7 @@ interface AreaBoardProps {
 	roomId: string;
 	playerId: string;
 	diceResult: number | null;
+	inventory: Animal[];
 }
 
 const AreaBoard: React.FC<AreaBoardProps> = ({
@@ -27,6 +28,7 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 	roomId,
 	playerId,
 	diceResult,
+	inventory,
 }) => {
 	const [selectedAnimal, setSelectedAnimal] = useState<string | null>(null);
 	const [placedAnimals, setPlacedAnimals] = useState<{
@@ -37,13 +39,11 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 	});
 
 	useEffect(() => {
-		const newPlacedAnimals: { [key: string]: number } = {
-			RessaPanda: 0,
-			Penguin: 0,
-		};
+		const newPlacedAnimals: { [key: string]: number } = {};
 		Object.values(board).forEach((cage) => {
 			cage.animals.forEach((animal) => {
-				newPlacedAnimals[animal.id]++;
+				newPlacedAnimals[animal.id] =
+					(newPlacedAnimals[animal.id] || 0) + 1;
 			});
 		});
 		setPlacedAnimals(newPlacedAnimals);
@@ -106,28 +106,20 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 		if (phase === "init" && isCurrentTurn && action === ActionState.INIT) {
 			return (
 				<div className="w-1/3 pr-4">
-					<button
-						className={`w-full mb-2 py-2 px-4 rounded ${
-							selectedAnimal === "RessaPanda"
-								? "bg-blue-500 text-white"
-								: "bg-gray-200"
-						}`}
-						onClick={() => handleAnimalSelect("RessaPanda")}
-						disabled={placedAnimals.RessaPanda > 0}
-					>
-						レッサーパンダ
-					</button>
-					<button
-						className={`w-full mb-2 py-2 px-4 rounded ${
-							selectedAnimal === "Penguin"
-								? "bg-blue-500 text-white"
-								: "bg-gray-200"
-						}`}
-						onClick={() => handleAnimalSelect("Penguin")}
-						disabled={placedAnimals.Penguin > 0}
-					>
-						ペンギン
-					</button>
+					{inventory.map((animal) => (
+						<button
+							key={animal.id}
+							className={`w-full mb-2 py-2 px-4 rounded ${
+								selectedAnimal === animal.id
+									? "bg-blue-500 text-white"
+									: "bg-gray-200"
+							}`}
+							onClick={() => handleAnimalSelect(animal.id)}
+							disabled={placedAnimals[animal.id] > 0}
+						>
+							{animal.name}
+						</button>
+					))}
 					{selectedAnimal && (
 						<button
 							className="w-full py-2 px-4 bg-red-500 text-white rounded"

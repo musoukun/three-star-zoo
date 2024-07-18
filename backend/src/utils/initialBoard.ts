@@ -1,46 +1,20 @@
-export const initialBoard = {
-	cage1: {
-		animals: [],
-		max: 4,
-	},
-	cage2: {
-		animals: [],
-		max: 4,
-	},
-	cage3: {
-		animals: [],
-		max: 4,
-	},
-	cage4: {
-		animals: [],
-		max: 4,
-	},
-	cage5: {
-		animals: [],
-		max: 4,
-	},
-	cage6: {
-		animals: [],
-		max: 4,
-	},
-	cage7: {
-		animals: [],
-		max: 4,
-	},
-	cage8: {
-		animals: [],
-		max: 4,
-	},
-	cage9: {
-		animals: [],
-		max: 4,
-	},
-	cage10: {
-		animals: [],
-		max: 4,
-	},
-	"cage11-12": {
-		animals: [],
-		max: 4,
-	},
+import { Board, Cage } from "../types/types";
+
+const createEmptyCage = (): Cage => ({
+	animals: [],
+	max: 4,
+});
+
+export const initialBoard: Board = {
+	cage1: createEmptyCage(),
+	cage2: createEmptyCage(),
+	cage3: createEmptyCage(),
+	cage4: createEmptyCage(),
+	cage5: createEmptyCage(),
+	cage6: createEmptyCage(),
+	cage7: createEmptyCage(),
+	cage8: createEmptyCage(),
+	cage9: createEmptyCage(),
+	cage10: createEmptyCage(),
+	"cage11-12": createEmptyCage(),
 };
