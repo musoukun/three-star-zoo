@@ -18,20 +18,21 @@ export class GameService {
 	 * @param {Player[]} players - プレイヤー
 	 * @returns {GameState} - ゲームの状態
 	 */
-	initializeGameState(players: Player[]): GameState {
+	initializeGameState(players: Player[], playerId: string): GameState {
 		return {
-			players: players.map((player, index) => ({
+			players: players.map((player) => ({
 				...player,
 				inventory: [RessaPanda, Penguin],
 				board: this.createEmptyBoard(),
 				action: ActionState.INIT,
-				current: index === 0,
+				current: playerId === player.id,
 				poops: 0,
 				money: 4,
 				star: 0,
 			})),
 			phase: "init",
 			roundNumber: 1,
+			currentPlayer: players.find((player) => playerId === player.id),
 		};
 	}
 
@@ -144,7 +145,7 @@ export class GameService {
 	}
 
 	/**
-	 * 初期配置が完了しているかどうかを確認します。
+	 * プレイヤー全員の初期配置が完了したかどうかを確認します。
 	 * @param {GameState} gameState - ゲームの状態
 	 * @param {string} playerId - プレイヤーID
 	 * @param {Animal} animal - 動物
@@ -156,6 +157,18 @@ export class GameService {
 				player.action === ActionState.POOP && // poopアクションに移行している
 				player.inventory.length === 0 && // インベントリが空
 				this.countAnimalsOnBoard(player.board) === 2 // ボード上の動物が2匹
+		);
+	}
+
+	/**
+	 * プレイヤー単体の初期配置が完了したかどうかを確認します。
+	 * @param {Player} player - プレイヤー
+	 * @returns {boolean} - 初期配置かどうか
+	 */
+	isInitialPlacement(player: Player): boolean {
+		return (
+			player.inventory.length === 0 && // インベントリが空
+			this.countAnimalsOnBoard(player.board) === 2 // ボード上の動物が2匹
 		);
 	}
 
@@ -179,6 +192,11 @@ export class GameService {
 		const currentPlayerIndex = gameState.players.findIndex(
 			(player) => player.current
 		);
+		// todo: test用。プレイヤーが1人の場合は次のプレイヤーに移動しない
+		if (gameState.players.length === 1) {
+			return gameState;
+		}
+
 		const nextPlayerIndex =
 			(currentPlayerIndex + 1) % gameState.players.length;
 		const updatedPlayers = gameState.players.map((player, index) => ({

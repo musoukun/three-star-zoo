@@ -5,8 +5,8 @@ import { GameService } from "../services/GameService";
 import { RoomService } from "../services/RoomService";
 import { TestGameService } from "../services/TestGameService";
 import { Player, GameState, Animal } from "../types/types";
-import { GameController } from "../controller/gameController";
-import { TestGameController } from "../controller/testGameController";
+import { TestGameController } from "../controller/TestGameController";
+import { GameController } from "../controller/GameController";
 
 export class SocketEventHandler {
 	private io: Server;
@@ -45,6 +45,12 @@ export class SocketEventHandler {
 		this.io.to(socketId).emit("gameStateUpdate", gameState);
 	}
 
+	/**
+	 * ルーム関連のイベントを設定
+	 * @note この画面の処理はcallback関数で結果を返している。
+	 * @note 切り替わりが多いのと、responseの内容を工夫したいので。
+	 * @param socket
+	 */
 	private configureRoomEvents(socket: Socket): void {
 		socket.on("getRoomInfo", async ({ roomId }, callback) => {
 			const roomInfo = await getRoomInfo(this.prisma, roomId);
@@ -81,6 +87,12 @@ export class SocketEventHandler {
 		});
 	}
 
+	/**
+	 * ゲーム関連のイベントを設定
+	 * @note ゲーム開始後は共通のイベントリスナーに結果を返しています。
+	 * @note 1つの画面に何度も同じ形式のデータを送っているから共通にした。
+	 * @param socket
+	 */
 	private configureGameEvents(socket: Socket): void {
 		socket.on("startGame", async (data, response) => {
 			await this.gameController.handleStartGame(
@@ -91,7 +103,7 @@ export class SocketEventHandler {
 			);
 		});
 
-		socket.on("cageClick", async (data, callback) => {
+		socket.on("cageClick", async (data) => {
 			try {
 				const updatedGameState =
 					await this.gameController.handleCageClick(
@@ -100,21 +112,27 @@ export class SocketEventHandler {
 						data.cageNumber,
 						data.animal as Animal
 					);
-				callback(true, updatedGameState);
+				// イベントリスナーに結果を返す
+				this.emitGameState(updatedGameState, socket.id);
 			} catch (error) {
 				console.error("Error in cageClick:", error);
-				callback(false, null);
+				socket.emit("gameError", {
+					message: "Failed to process cage click",
+				});
 			}
 		});
 
-		socket.on("rollDice", async ({ roomId, playerId }, callback) => {
+		// 同様に rollDice イベントハンドラも修正する必要があります
+		socket.on("rollDice", async ({ roomId, playerId }) => {
 			try {
 				const updatedGameState =
 					await this.gameController.handleDiceRoll(roomId, playerId);
-				callback(true, updatedGameState);
+				this.emitGameState(updatedGameState, socket.id);
 			} catch (error) {
 				console.error("Error in rollDice:", error);
-				callback(false, null);
+				socket.emit("gameError", {
+					message: "Failed to process dice roll",
+				});
 			}
 		});
 	}

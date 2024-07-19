@@ -2,7 +2,8 @@
 import { PrismaClient, Room } from "@prisma/client";
 import { GameService } from "../services/GameService";
 import { RoomService } from "../services/RoomService";
-import { GameState, Player, Animal } from "../types/types";
+import { GameState, Player, Animal, ActionState } from "../types/types";
+import { count } from "console";
 
 const prisma = new PrismaClient();
 
@@ -28,7 +29,7 @@ export class GameController {
 
 		// プレイヤーの一覧をセットする
 		const initialGameState: GameState =
-			this.gameService.initializeGameState(players);
+			this.gameService.initializeGameState(players, playerId); //第2引数で、最初のプレイヤーを指定
 
 		const updatedGameState: GameState =
 			await this.roomService.updateRoomWithGameState(
@@ -65,15 +66,23 @@ export class GameController {
 			animal
 		);
 
-		// プレイヤーのアクションを更新
+		// プレイヤー初期配置が終わっていたら、アクションを更新
 		console.log("プレイヤーのアクションを更新", playerId);
-		updatedGameState = this.gameService.updatePlayerAction(
-			updatedGameState,
-			playerId,
-			"poop"
-		);
+		if (
+			this.gameService.isInitialPlacement(
+				updatedGameState.players.find(
+					(player) => playerId === player.id
+				) as Player
+			)
+		) {
+			updatedGameState = this.gameService.updatePlayerAction(
+				updatedGameState,
+				playerId,
+				ActionState.POOP
+			);
+		}
 
-		// 初期配置が完了してい場合、ゲームフェーズを更新
+		// プレイヤー全員の初期配置が完了している場合、ゲームフェーズを更新
 		if (this.gameService.isInitialPlacementComplete(updatedGameState)) {
 			updatedGameState = this.gameService.updateGamePhase(
 				updatedGameState,
@@ -81,16 +90,11 @@ export class GameController {
 			);
 		}
 
-		// 次のプレイヤーを設定
-		updatedGameState = this.gameService.moveToNextPlayer(updatedGameState);
-
 		// ゲームの状態を更新
 		return await this.roomService.updateRoomWithGameState(
 			room.id,
 			updatedGameState
 		);
-
-		// gameStateUpdateで更新されたゲームの状態を返す
 	}
 
 	async handleDiceRoll(roomId: string, playerId: string): Promise<GameState> {

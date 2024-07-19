@@ -62,7 +62,7 @@ export type GameState = {
 	currentPlayer?: Player;
 	phase: "waiting" | "init" | "main" | "end";
 	roundNumber: number;
-	// 他のゲーム全体に関する状態をここに追加
+	isTestMode?: boolean;
 };
 
 export type AnimalCard = {
@@ -85,4 +85,12 @@ export type Effect = {
 	stealIf?: string[]; // そのまま条件式をかく
 	choice?: string[];
 	adjacent?: [number, string, string]; // 隣接しているときの項目、第1引数に得られる数、第2引数にAnimalのidが入る、第3引数はonceかeach
+};
+
+export type ResultItem = {
+	animalId: string;
+	animalCount: number;
+	poopIcon: string;
+	poopCost: number;
+	subtotal: number;
 };

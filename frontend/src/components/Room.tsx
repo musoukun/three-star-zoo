@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import GameBoard from "./GameBoard";
 import animalCardsMock from "./animalCardsMock";
-import type { Player, Room as RoomType, GameState } from "../types/types";
+import type { Player, GameState, GameRoom } from "../types/types";
 import { useSetRecoilState } from "recoil";
 import { gameStateAtom } from "../atoms/atoms";
 import { getOrCreatePlayerId } from "../utils/uuid";
@@ -32,7 +32,7 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 			socket.emit(
 				"getRoomInfo",
 				{ roomId },
-				(roomInfo: RoomType | null) => {
+				(roomInfo: GameRoom | null) => {
 					if (roomInfo) {
 						setPlayers(roomInfo.players);
 						setIsOwner(roomInfo.ownerId === playerId);
@@ -179,7 +179,7 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 
 	if (gameStarted) {
 		return (
-			<div className="container mx-auto">
+			<div className="">
 				<GameBoard
 					socket={socket as Socket}
 					roomId={roomId}

@@ -7,7 +7,7 @@ import { PrismaClient, Room } from "@prisma/client";
 import { corsOptions } from "./config";
 import { getRoomList } from "./repository/RoomRepository";
 import { GameRoom } from "./types/types";
-import { SocketEventHandler } from "./routes/socketEvents";
+import { SocketEventHandler } from "./routes/SocketEvents";
 
 const prisma = new PrismaClient();
 const app = express();

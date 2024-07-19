@@ -152,46 +152,58 @@ const LeftPanel: React.FC<{
 	playerId,
 	diceResult,
 }) => {
-	if (phase === "init" && isCurrentTurn && action === ActionState.INIT) {
-		return (
-			<div className="w-1/3 pr-4">
-				{inventory.map((animal) => (
-					<AnimalButton
-						key={animal.id}
-						animal={animal}
-						selectedAnimal={selectedAnimal}
-						placedAnimals={placedAnimals}
-						handleAnimalSelect={handleAnimalSelect}
-					/>
-				))}
-				{selectedAnimal && (
-					<button
-						className="w-full py-2 px-4 bg-red-500 text-white rounded"
-						onClick={handleCancel}
-					>
-						キャンセル
-					</button>
+	return (
+		<div className="w-1/3 ">
+			<div className="bg-pink-100 border-2 border-[#8b4513] rounded-lg p-4 h-full flex flex-col">
+				{phase === "init" &&
+					isCurrentTurn &&
+					action === ActionState.INIT && (
+						<div className="flex-grow overflow-y-auto">
+							{inventory.map((animal) => (
+								<AnimalButton
+									key={animal.id}
+									animal={animal}
+									selectedAnimal={selectedAnimal}
+									placedAnimals={placedAnimals}
+									handleAnimalSelect={handleAnimalSelect}
+								/>
+							))}
+							{selectedAnimal && (
+								<button
+									className="w-full py-2 px-4 bg-red-500 text-white rounded mt-2"
+									onClick={handleCancel}
+								>
+									キャンセル
+								</button>
+							)}
+						</div>
+					)}
+				{phase === "main" &&
+					isCurrentTurn &&
+					action === ActionState.ROLL && (
+						<div className="flex-grow flex flex-col justify-center">
+							<DiceRoll
+								socket={socket}
+								roomId={roomId}
+								playerId={playerId}
+								onRollComplete={() => {}}
+							/>
+							{diceResult !== null && (
+								<DiceResult result={diceResult} />
+							)}
+						</div>
+					)}
+				{(!isCurrentTurn ||
+					(phase !== "init" && action !== ActionState.ROLL)) && (
+					<div className="flex-grow flex items-center justify-center">
+						<p className="text-gray-500">
+							他のプレイヤーのターンです
+						</p>
+					</div>
 				)}
 			</div>
-		);
-	} else if (
-		phase === "main" &&
-		isCurrentTurn &&
-		action === ActionState.ROLL
-	) {
-		return (
-			<div className="w-1/3 pr-4">
-				<DiceRoll
-					socket={socket}
-					roomId={roomId}
-					playerId={playerId}
-					onRollComplete={() => {}}
-				/>
-				{diceResult !== null && <DiceResult result={diceResult} />}
-			</div>
-		);
-	}
-	return null;
+		</div>
+	);
 };
 
 /**
@@ -237,27 +249,23 @@ const BoardArea: React.FC<{
 	phase: string;
 	handleCageClick: (cageNumber: string) => void;
 }> = ({ board, isCurrentTurn, selectedAnimal, phase, handleCageClick }) => (
-	<div
-		className={`${
-			isCurrentTurn ? "w-2/3" : "w-full"
-		} bg-[#e6f3d9] border-4 ${
-			isCurrentTurn ? "border-blue-500" : "border-[#8b4513]"
-		} p-4 rounded-lg`}
-	>
-		<div className="grid grid-cols-6 gap-2">
-			{Object.entries(board).map(([cageNumber, cage]) => (
-				<CageCell
-					key={cageNumber}
-					cageNumber={cageNumber}
-					cage={cage}
-					isCurrentTurn={isCurrentTurn}
-					selectedAnimal={selectedAnimal}
-					phase={phase}
-					handleCageClick={handleCageClick}
-				/>
-			))}
+	<div className="w-2/3 h-full">
+		<div className="bg-[#e6f3d9] border-4 border-[#056df5] p-4 rounded-lg h-full flex flex-col">
+			<div className="flex-grow grid grid-cols-6 gap-2 overflow-y-auto">
+				{Object.entries(board).map(([cageNumber, cage]) => (
+					<CageCell
+						key={cageNumber}
+						cageNumber={cageNumber}
+						cage={cage}
+						isCurrentTurn={isCurrentTurn}
+						selectedAnimal={selectedAnimal}
+						phase={phase}
+						handleCageClick={handleCageClick}
+					/>
+				))}
+			</div>
+			<BoardFooter isCurrentTurn={isCurrentTurn} phase={phase} />
 		</div>
-		<BoardFooter isCurrentTurn={isCurrentTurn} phase={phase} />
 	</div>
 );
 
@@ -310,10 +318,6 @@ const CageCell: React.FC<{
 	);
 };
 
-/**
- * ボードフッターコンポーネント
- * ボードの下部に表示される情報を管理します
- */
 const BoardFooter: React.FC<{
 	isCurrentTurn: boolean;
 	phase: string;

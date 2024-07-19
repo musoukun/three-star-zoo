@@ -32,13 +32,13 @@ export type Player = {
 	turnOrder: number; // turnOrderを必須に変更
 };
 
-export interface GameState {
+export type GameState = {
 	players: Player[];
 	currentPlayer?: Player | null;
 	phase: "waiting" | "init" | "main" | "end";
 	roundNumber: number;
 	isTestMode?: boolean;
-}
+};
 
 export type Phase = "waiting" | "init" | "main" | "end";
 
