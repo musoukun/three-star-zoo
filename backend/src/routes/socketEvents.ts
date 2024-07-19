@@ -8,22 +8,51 @@ import { Player, GameState, Animal } from "../types/types";
 import { GameController } from "../controller/gameController";
 import { TestGameController } from "../controller/testGameController";
 
-export function configureSocketEvents(io: Server, prisma: PrismaClient) {
-	const gameService = new GameService();
-	const roomService = new RoomService(prisma);
-	const testGameController = new TestGameController(prisma);
-	const gameController = new GameController(gameService, roomService);
+export class SocketEventHandler {
+	private io: Server;
+	private prisma: PrismaClient;
+	private gameService: GameService;
+	private roomService: RoomService;
+	private testGameController: TestGameController;
+	private gameController: GameController;
 
-	io.on("connection", (socket: Socket) => {
-		console.log("A user connected");
+	constructor(io: Server, prisma: PrismaClient) {
+		this.io = io;
+		this.prisma = prisma;
+		this.gameService = new GameService();
+		this.roomService = new RoomService(prisma);
+		this.testGameController = new TestGameController(prisma);
+		this.gameController = new GameController(
+			this.gameService,
+			this.roomService
+		);
+	}
 
-		socket.on("getRoomInfo", async ({ roomId, playerId }, callback) => {
-			const roomInfo = await getRoomInfo(prisma, roomId);
+	public setupSocketConnections(): void {
+		this.io.on("connection", (socket: Socket) => {
+			console.log("A user connected");
+
+			this.configureRoomEvents(socket);
+			this.configureGameEvents(socket);
+			this.configureTestGameEvents(socket);
+
+			socket.on("disconnect", () => {
+				console.log("A user disconnected");
+			});
+		});
+	}
+	private emitGameState(gameState: GameState, socketId: string): void {
+		this.io.to(socketId).emit("gameStateUpdate", gameState);
+	}
+
+	private configureRoomEvents(socket: Socket): void {
+		socket.on("getRoomInfo", async ({ roomId }, callback) => {
+			const roomInfo = await getRoomInfo(this.prisma, roomId);
 			callback(roomInfo);
 		});
 
 		socket.on("createRoom", async (data, response) => {
-			const result = await roomService.handleCreateRoom(
+			const result = await this.roomService.handleCreateRoom(
 				socket,
 				data.name,
 				data.password,
@@ -34,7 +63,7 @@ export function configureSocketEvents(io: Server, prisma: PrismaClient) {
 		});
 
 		socket.on("joinRoom", async (data, response) => {
-			const success = await roomService.handleJoinRoom(
+			const success = await this.roomService.handleJoinRoom(
 				socket,
 				data.roomId,
 				data.password,
@@ -44,8 +73,17 @@ export function configureSocketEvents(io: Server, prisma: PrismaClient) {
 			response(success);
 		});
 
+		socket.on("leaveRoom", async ({ roomId, playerId }, callback) => {
+			await this.roomService.handlePlayerLeave(playerId, roomId);
+			if (typeof callback === "function") {
+				callback(true);
+			}
+		});
+	}
+
+	private configureGameEvents(socket: Socket): void {
 		socket.on("startGame", async (data, response) => {
-			await gameController.handleStartGame(
+			await this.gameController.handleStartGame(
 				data.roomId,
 				data.playerId,
 				data.players,
@@ -53,21 +91,15 @@ export function configureSocketEvents(io: Server, prisma: PrismaClient) {
 			);
 		});
 
-		socket.on("leaveRoom", async ({ roomId, playerId }, callback) => {
-			await roomService.handlePlayerLeave(playerId, roomId);
-			if (typeof callback === "function") {
-				callback(true);
-			}
-		});
-
 		socket.on("cageClick", async (data, callback) => {
 			try {
-				const updatedGameState = await gameController.handleCageClick(
-					data.roomId,
-					data.playerId,
-					data.cageNumber,
-					data.animal as Animal
-				);
+				const updatedGameState =
+					await this.gameController.handleCageClick(
+						data.roomId,
+						data.playerId,
+						data.cageNumber,
+						data.animal as Animal
+					);
 				callback(true, updatedGameState);
 			} catch (error) {
 				console.error("Error in cageClick:", error);
@@ -77,75 +109,59 @@ export function configureSocketEvents(io: Server, prisma: PrismaClient) {
 
 		socket.on("rollDice", async ({ roomId, playerId }, callback) => {
 			try {
-				const updatedGameState = await gameController.handleDiceRoll(
-					roomId,
-					playerId
-				);
+				const updatedGameState =
+					await this.gameController.handleDiceRoll(roomId, playerId);
 				callback(true, updatedGameState);
 			} catch (error) {
 				console.error("Error in rollDice:", error);
 				callback(false, null);
 			}
 		});
+	}
 
-		// Test game events
-		socket.on(
-			"startTestGame",
-			async (
-				data: { roomId: string; playerId: string },
-				response: (
-					success: boolean,
-					gameState: GameState | null
-				) => void
-			) => {
-				await testGameController.handleStartTestGame(data, response);
-			}
-		);
+	private configureTestGameEvents(socket: Socket): void {
+		socket.on("startTestGame", async (data, response) => {
+			await this.testGameController.handleStartTestGame(data, response);
+		});
 
 		socket.on("resetTestGame", async (data, response) => {
-			await roomService.resetTestRoom(data.roomId);
+			await this.roomService.resetTestRoom(data.roomId);
 			response();
 		});
 
-		// Test game events
-		socket.on("startTestGame", async (data, response) => {
-			await testGameController.handleStartTestGame(data, response);
-		});
-
 		socket.on("addTestPlayer", async (data, response) => {
-			await testGameController.handleAddTestPlayer(data, response);
+			await this.testGameController.handleAddTestPlayer(data, response);
 		});
 
 		socket.on("setCurrentPlayer", async (data, response) => {
-			await testGameController.handleSetCurrentPlayer(data, response);
+			await this.testGameController.handleSetCurrentPlayer(
+				data,
+				response
+			);
 		});
 
 		socket.on("addCoins", async (data, response) => {
-			await testGameController.handleAddCoins(data, response);
+			await this.testGameController.handleAddCoins(data, response);
 		});
 
 		socket.on("placeAnimal", async (data, response) => {
-			await testGameController.handlePlaceAnimal(data, response);
+			await this.testGameController.handlePlaceAnimal(data, response);
 		});
 
 		socket.on("changePhase", async (data, response) => {
-			await testGameController.handleChangePhase(data, response);
+			await this.testGameController.handleChangePhase(data, response);
 		});
 
 		socket.on("testRollDice", async (data, response) => {
-			await testGameController.handleTestRollDice(data, response);
+			await this.testGameController.handleTestRollDice(data, response);
 		});
 
 		socket.on("poopAction", async (data, response) => {
-			await testGameController.handlePoopAction(data, response);
+			await this.testGameController.handlePoopAction(data, response);
 		});
 
 		socket.on("flushAction", async (data, response) => {
-			await testGameController.handleFlushAction(data, response);
+			await this.testGameController.handleFlushAction(data, response);
 		});
-
-		socket.on("disconnect", () => {
-			console.log("A user disconnected");
-		});
-	});
+	}
 }

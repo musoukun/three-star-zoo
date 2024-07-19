@@ -1,5 +1,5 @@
 import { GameState, Player, Animal, Board } from "../types/types";
-import { Effect } from "../types/AnimalEffect";
+import { Effect } from "../types/types";
 import { animalMap } from "../types/Animal/index";
 
 /**

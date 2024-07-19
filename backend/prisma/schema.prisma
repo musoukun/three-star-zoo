@@ -15,8 +15,12 @@ datasource db {
 }
 
 model Room {
-  id       String @id
-  data     Json
-  prevData Json?
-  version  Int
+  id            String  @id
+  name          String
+  password      String
+  players       Json
+  gameState     Json?
+  prevGameState Json?
+  ownerId       String?
+  version       Int     @default(0)
 }

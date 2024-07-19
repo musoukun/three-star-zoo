@@ -24,8 +24,12 @@ export class GameController {
 		}
 		//todo 後でチェック処理に使用するかも
 		console.log("ゲーム開始した人", playerId);
+		console.log("プレイヤー一覧", players);
+
+		// プレイヤーの一覧をセットする
 		const initialGameState: GameState =
 			this.gameService.initializeGameState(players);
+
 		const updatedGameState: GameState =
 			await this.roomService.updateRoomWithGameState(
 				room.id,
@@ -42,24 +46,34 @@ export class GameController {
 		animal: Animal
 	): Promise<GameState> {
 		const room: Room | null = await this.roomService.getRoomById(roomId);
-		if (!room || !room.data) {
+		if (!room || !room.gameState) {
 			throw new Error("Room or game state not found");
 		}
 
-		this.gameService.validateGameStateIntegrity(room.data, room.prevData);
+		// ゲームの状態が正しいかどうかを確認
+		this.gameService.validateGameStateIntegrity(
+			room.gameState as unknown as GameState,
+			room.prevGameState as unknown as GameState
+		);
 
+		// 動物を配置する
+		console.log("配置する動物", animal);
 		let updatedGameState = this.gameService.placeAnimal(
-			room.data as unknown as GameState,
+			room.gameState as unknown as GameState,
 			playerId,
 			cageNumber,
 			animal
 		);
+
+		// プレイヤーのアクションを更新
+		console.log("プレイヤーのアクションを更新", playerId);
 		updatedGameState = this.gameService.updatePlayerAction(
 			updatedGameState,
 			playerId,
 			"poop"
 		);
 
+		// 初期配置が完了してい場合、ゲームフェーズを更新
 		if (this.gameService.isInitialPlacementComplete(updatedGameState)) {
 			updatedGameState = this.gameService.updateGamePhase(
 				updatedGameState,
@@ -67,24 +81,31 @@ export class GameController {
 			);
 		}
 
+		// 次のプレイヤーを設定
 		updatedGameState = this.gameService.moveToNextPlayer(updatedGameState);
 
+		// ゲームの状態を更新
 		return await this.roomService.updateRoomWithGameState(
 			room.id,
 			updatedGameState
 		);
+
+		// gameStateUpdateで更新されたゲームの状態を返す
 	}
 
 	async handleDiceRoll(roomId: string, playerId: string): Promise<GameState> {
 		const room: Room | null = await this.roomService.getRoomById(roomId);
-		if (!room || !room.data) {
+		if (!room || !room.gameState) {
 			throw new Error("Room or game state not found");
 		}
 
-		this.gameService.validateGameStateIntegrity(room.data, room.prevData);
+		this.gameService.validateGameStateIntegrity(
+			room.gameState as unknown as GameState,
+			room.prevGameState as unknown as GameState
+		);
 
 		let updatedGameState = this.gameService.rollDice(
-			room.data as unknown as GameState,
+			room.gameState as unknown as GameState,
 			playerId
 		);
 		updatedGameState = this.gameService.updatePlayerAction(

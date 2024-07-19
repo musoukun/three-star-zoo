@@ -2,7 +2,6 @@
 
 import { ActionState } from "./ActionState";
 import { AnimalColor } from "./AnimalColor";
-import { Effect } from "./AnimalEffect";
 
 export type User = {
 	id: string | undefined; // ルームに入室するときにfrontend側で設定するUUID
@@ -16,8 +15,9 @@ export type Animal = {
 	poops?: number;
 	color?: AnimalColor[];
 	effect?: Effect;
-	inventory?: Animal[];
+	inventory?: number;
 	global?: boolean;
+	effectchoise?: boolean;
 };
 
 export type Cage = {
@@ -46,14 +46,15 @@ export type Player = {
 	current?: boolean;
 };
 
-export type Room = {
+export type GameRoom = {
 	id: string;
 	name: string;
 	password: string;
-	players: Player[];
-	ownerId: string;
+	players: Player[] | User[];
 	gameState: GameState | null;
-	prevData?: GameState | null;
+	prevGameState?: GameState | null;
+	ownerId: string;
+	version?: number;
 };
 
 export type GameState = {
@@ -70,4 +71,18 @@ export type AnimalCard = {
 	color: string;
 	image: string;
 	stats: { label: string; value: number }[];
+};
+
+export type Effect = {
+	global: boolean;
+	timing: string;
+	creation: number;
+	creationIf?: string[]; // そのまま条件式を各
+	steal?: [number, string, number?, string?]; // 第２引数にtargetかanyoneが入る、第３引数はstealの人数が入る,第4引数はstarかcoin
+	buff?: [number, string, string]; //Animalのidが第2引数に入る, 第3引数はonceかeach
+	bonusbuff?: [number, string, string];
+	bonussteal?: number;
+	stealIf?: string[]; // そのまま条件式をかく
+	choice?: string[];
+	adjacent?: [number, string, string]; // 隣接しているときの項目、第1引数に得られる数、第2引数にAnimalのidが入る、第3引数はonceかeach
 };

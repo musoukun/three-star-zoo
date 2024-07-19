@@ -31,7 +31,7 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 		if (socket) {
 			socket.emit(
 				"getRoomInfo",
-				{ roomId, playerId },
+				{ roomId },
 				(roomInfo: RoomType | null) => {
 					if (roomInfo) {
 						setPlayers(roomInfo.players);

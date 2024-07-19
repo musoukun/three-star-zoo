@@ -32,7 +32,7 @@ export class TestGameService {
 		// Roomを初期化
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: JSON.stringify(initialGameState) },
+			data: { gameState: JSON.stringify(initialGameState) },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", initialGameState);
@@ -47,9 +47,9 @@ export class TestGameService {
 			where: { id: roomId },
 		});
 		if (!room) throw new Error("Room not found");
-		if (!room.data) throw new Error("Room data not found");
+		if (!room.gameState) throw new Error("Room data not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		if (gameState.phase !== "waiting" || gameState.players.length >= 3) {
 			throw new Error("Cannot add player at this time");
 		}
@@ -67,13 +67,14 @@ export class TestGameService {
 			current: gameState.players.length === 0,
 			turnOrder: gameState.players.length,
 			startPlayer: gameState.players.length === 0,
+			owner: false,
 		};
 
 		gameState.players.push(newPlayer);
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -89,16 +90,16 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		gameState.players = gameState.players.map((player) => ({
 			...player,
 			current: player.id === playerId,
 		}));
 
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -111,7 +112,7 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		const currentPlayer = gameState.players.find(
 			(player) => player.current
 		);
@@ -119,10 +120,10 @@ export class TestGameService {
 			currentPlayer.money += amount;
 		}
 
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -139,7 +140,7 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		const currentPlayer = gameState.players.find(
 			(player) => player.current
 		);
@@ -151,10 +152,10 @@ export class TestGameService {
 			currentPlayer.board[cageNumber].animals.push(animal);
 		}
 
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -167,13 +168,13 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		gameState.phase = phase as any;
 
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -186,7 +187,7 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		const currentPlayer = gameState.players.find(
 			(player) => player.current
 		);
@@ -195,10 +196,10 @@ export class TestGameService {
 			currentPlayer.action = ActionState.TRADE;
 		}
 
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -211,7 +212,7 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		const currentPlayer = gameState.players.find(
 			(player) => player.current
 		);
@@ -219,10 +220,10 @@ export class TestGameService {
 			currentPlayer.poops += 1;
 		}
 
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -245,7 +246,7 @@ export class TestGameService {
 		});
 		if (!room) throw new Error("Room not found");
 
-		const gameState: GameState = room.data as unknown as GameState;
+		const gameState: GameState = room.gameState as unknown as GameState;
 		const currentPlayer = gameState.players.find(
 			(player) => player.current
 		);
@@ -253,10 +254,10 @@ export class TestGameService {
 			currentPlayer.poops = 0;
 		}
 
-		room.data = JSON.stringify(gameState);
+		room.gameState = JSON.stringify(gameState);
 		await this.prisma.room.update({
 			where: { id: roomId },
-			data: { data: room.data },
+			data: { gameState: room.gameState },
 		});
 
 		io.to(roomId).emit("gameStateUpdate", gameState);
@@ -273,6 +274,6 @@ export class TestGameService {
 			where: { id: roomId },
 		});
 		if (!room) throw new Error("Room not found");
-		return room.data as unknown as GameState;
+		return room.gameState as unknown as GameState;
 	}
 }

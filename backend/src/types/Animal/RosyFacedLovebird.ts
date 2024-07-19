@@ -1,4 +1,4 @@
-import { Animal } from "../Animal";
+import { Animal } from "../types";
 import { AnimalColor } from "../AnimalColor";
 
 export const RosyFacedLovebird: Animal = {

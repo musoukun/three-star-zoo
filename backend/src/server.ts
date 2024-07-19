@@ -2,29 +2,32 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import { PrismaClient } from "@prisma/client";
-import { configureSocketEvents } from "./routes/socketEvents";
+import { PrismaClient, Room } from "@prisma/client";
+
 import { corsOptions } from "./config";
 import { getRoomList } from "./repository/RoomRepository";
+import { GameRoom } from "./types/types";
+import { SocketEventHandler } from "./routes/socketEvents";
 
 const prisma = new PrismaClient();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: corsOptions });
+// ソケットイベントハンドラーを初期化
+const socketEventHandler = new SocketEventHandler(io, prisma);
+socketEventHandler.setupSocketConnections();
 
 app.use(cors(corsOptions));
 
 app.get("/api/rooms", async (req, res) => {
 	try {
-		const roomList = await getRoomList(prisma);
+		const roomList: Room[] = await getRoomList(prisma);
 		res.json(roomList);
 	} catch (error) {
 		console.error("Failed to fetch rooms:", error);
 		res.status(500).json({ error: "Failed to fetch rooms" });
 	}
 });
-
-configureSocketEvents(io, prisma);
 
 async function main() {
 	try {

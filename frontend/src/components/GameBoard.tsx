@@ -95,16 +95,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		// ゲーム開始、ゲーム状態更新のイベントハンドラーをセットアップ
 		const setupSocketHandlers = () => {
 			// ゲームが開始されたときに呼び出される
-			// @param newGameStateData - 新しいゲーム状態
-			// @returns void
 			const handleGameStarted = (newGameStateData: GameState) => {
 				console.log("Game started:", newGameStateData);
 				updateGameState(newGameStateData, 0); // バージョン0で初期化
 			};
 
 			// ゲーム状態が更新されたときに呼び出される
-			// @param newGameStateData - 新しいゲーム状態
-			// @param version - ゲーム状態のバージョン
 			const handleGameStateUpdate = (
 				newGameStateData: GameState,
 				version: number
@@ -118,11 +114,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
 				updateGameState(newGameStateData, version);
 			};
 
-			socket.on("gameStarted", handleGameStarted);
+			// socket.onとは、サーバーからのイベントを受け取るメソッド
+			socket.on("startGame", handleGameStarted);
 			socket.on("gameStateUpdate", handleGameStateUpdate);
 
 			return () => {
-				socket.off("gameStarted", handleGameStarted);
+				socket.off("startGame", handleGameStarted);
 				socket.off("gameStateUpdate", handleGameStateUpdate);
 			};
 		};

@@ -1,5 +1,5 @@
-import { Animal } from "../Animal";
 import { AnimalColor } from "../AnimalColor";
+import { Animal } from "../types";
 
 export const Penguin: Animal = {
 	id: "Penguin",
