@@ -13,9 +13,9 @@ import {
 } from "../types/types";
 import AreaBoard from "./AreaBoard";
 import OtherPlayer from "./OtherPlayer";
-import AnimalCardList from "./AnimalCardList";
 import { ActionState } from "../types/ActionState";
 import ResultDisplay from "./ResultDisplay";
+import AnimalCardsSection from "./AnimalCardSection";
 
 interface GameBoardProps {
 	socket: Socket;
@@ -172,7 +172,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 							currentPlayerId={gameState?.currentPlayer?.id}
 						/>
 					</div>
-					<div className="w-2/5 p-2 bg-gray-100 overflow-y-auto">
+					<div className="w-2/5 bg-gray-100 overflow-hidden">
 						<AnimalCardsSection animalCards={animalCards} />
 					</div>
 				</div>
@@ -239,13 +239,13 @@ const OtherPlayersSection: React.FC<{
 	</div>
 );
 
-const AnimalCardsSection: React.FC<{ animalCards: AnimalCardType[] }> = ({
-	animalCards,
-}) => (
-	<div>
-		<AnimalCardList AnimalCards={animalCards} />
-	</div>
-);
+// const AnimalCardsSection: React.FC<{ animalCards: AnimalCardType[] }> = ({
+// 	animalCards,
+// }) => (
+// 	<div>
+// 		<AnimalCardList AnimalCards={animalCards} />
+// 	</div>
+// );
 
 const PlayerAreaBoard: React.FC<{
 	myPlayerData: Player | undefined;

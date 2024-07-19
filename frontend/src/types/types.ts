@@ -70,6 +70,7 @@ export type AnimalCard = {
 	name: string;
 	color: string;
 	image: string;
+	cost: number;
 	stats: { label: string; value: number }[];
 };
 
