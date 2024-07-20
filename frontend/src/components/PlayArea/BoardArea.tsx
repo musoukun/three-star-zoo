@@ -4,30 +4,23 @@ import ActionProgressBar from "../ActionProgressBar";
 import LeftPanel from "./LeftPanel";
 import CageArea from "./CageArea";
 import { ActionState } from "../../types/ActionState";
+import { useGameState } from "../../hooks/useGameState";
 
 interface BoardAreaProps {
-	board: Board;
-	isCurrentTurn: boolean;
 	onCageClick: (cageNumber: string, animal: Animal) => void;
-	phase: string;
-	action: ActionState;
-	diceResult: number | null;
-	inventory: Animal[];
-	rolling: boolean;
 	handleRollDice: (diceCount: number) => void;
 }
 
 const BoardArea: React.FC<BoardAreaProps> = ({
-	board,
-	isCurrentTurn,
 	onCageClick,
-	phase,
-	action,
-	diceResult,
-	inventory,
-	rolling,
 	handleRollDice,
 }) => {
+	const board: Board = useGameState().getMyPlayerBoard();
+	const isCurrentTurn: boolean = useGameState().isCurrentTurn();
+	const phase = useGameState().getPhase();
+	const action: ActionState = useGameState().getMyPlayerAction();
+	const inventory = useGameState().getMyPlayerInventory();
+
 	const [selectedAnimal, setSelectedAnimal] = useState<string | null>(null);
 	const [placedAnimals, setPlacedAnimals] = useState<{
 		[key: string]: number;
@@ -80,28 +73,19 @@ const BoardArea: React.FC<BoardAreaProps> = ({
 				style={{ height: `calc(100% - 60px)` }}
 			>
 				<LeftPanel
-					phase={phase}
-					isCurrentTurn={isCurrentTurn}
-					action={action}
-					inventory={inventory}
 					placedAnimals={placedAnimals}
 					selectedAnimal={selectedAnimal}
 					handleAnimalSelect={handleAnimalSelect}
 					handleCancel={handleCancel}
-					diceResult={diceResult}
-					rolling={rolling}
 					handleRollDice={handleRollDice}
 				/>
 				<CageArea
-					board={board}
-					isCurrentTurn={isCurrentTurn}
 					selectedAnimal={selectedAnimal}
-					phase={phase}
 					handleCageClick={handleCageClick}
 				/>
 			</div>
 			<div className="h-[60px]">
-				<ActionProgressBar currentAction={action} />
+				<ActionProgressBar />
 			</div>
 		</div>
 	);

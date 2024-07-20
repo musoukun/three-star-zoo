@@ -62,8 +62,8 @@ export type GameState = {
 	currentPlayer?: Player;
 	phase: "waiting" | "init" | "main" | "end";
 	roundNumber: number;
-	poopsResult: ResultPoops[];
-	version: number;
+	poopsResult?: ResultPoops[];
+	version?: number;
 	isTestMode?: boolean;
 };
 

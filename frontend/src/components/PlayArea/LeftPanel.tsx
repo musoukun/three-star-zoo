@@ -3,42 +3,45 @@ import { Animal } from "../../types/types";
 import DiceRoll from "../DiceRoll";
 import AnimalButton from "./AnimalButton";
 import { ActionState } from "../../types/ActionState";
+import { useGameState } from "../../hooks/useGameState";
 
 interface LeftPanelProps {
-	phase: string;
-	isCurrentTurn: boolean;
-	action: ActionState;
-	inventory: Animal[];
-	placedAnimals: { [key: string]: number };
 	selectedAnimal: string | null;
-	handleAnimalSelect: (animal: string) => void;
 	handleCancel: () => void;
-	diceResult: number | null;
-	rolling: boolean;
+	handleAnimalSelect: (animal: string) => void;
 	handleRollDice: (diceCount: number) => void;
+	placedAnimals: { [key: string]: number };
 }
 
 const LeftPanel: React.FC<LeftPanelProps> = ({
-	phase,
-	isCurrentTurn,
-	action,
-	inventory,
-	placedAnimals,
 	selectedAnimal,
-	handleAnimalSelect,
 	handleCancel,
-	diceResult,
-	rolling,
+	handleAnimalSelect,
 	handleRollDice,
+	placedAnimals,
 }) => {
+	const {
+		getPhase,
+		isCurrentTurn,
+		getMyPlayerAction,
+		getMyPlayerDiceResult,
+		getMyPlayerInventory,
+		rolling,
+	} = useGameState();
+
+	const phase = getPhase();
+	const action = getMyPlayerAction();
+	const diceResult = getMyPlayerDiceResult();
+	const inventory = getMyPlayerInventory();
+
 	return (
 		<div className="w-1/3">
 			<div className="h-full bg-pink-100 border-2 border-[#8b4513] rounded-lg p-4 flex flex-col">
 				{phase === "init" &&
-					isCurrentTurn &&
+					isCurrentTurn() &&
 					action === ActionState.INIT && (
 						<div className="flex-grow">
-							{inventory.map((animal) => (
+							{inventory.map((animal: Animal) => (
 								<AnimalButton
 									key={animal.id}
 									animal={animal}
@@ -58,7 +61,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
 						</div>
 					)}
 				{phase === "main" &&
-					isCurrentTurn &&
+					isCurrentTurn() &&
 					action === ActionState.ROLL && (
 						<div className="flex-grow flex flex-col justify-center">
 							<DiceRoll
@@ -76,7 +79,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
 						</div>
 					)}
 				<div className="flex-grow flex items-center justify-center">
-					{isCurrentTurn ? (
+					{isCurrentTurn() ? (
 						<p className="text-gray-600 font-semibold">
 							あなたのターンです
 						</p>

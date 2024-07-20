@@ -1,9 +1,12 @@
 import React from "react";
 import { ActionState } from "../types/ActionState";
+import { useGameState } from "../hooks/useGameState";
 
-const ActionProgressBar: React.FC<{ currentAction: ActionState }> = ({
-	currentAction,
-}) => {
+const ActionProgressBar: React.FC = () => {
+	const { getMyPlayerAction } = useGameState();
+
+	const currentAction: ActionState = getMyPlayerAction();
+
 	const actions = [
 		{ key: "poop", icon: "💩", label: "うんちをもらう" },
 		{ key: "roll", icon: "🎲", label: "サイコロをなげる" },

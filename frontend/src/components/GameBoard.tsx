@@ -26,9 +26,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		gameState,
 		updateGameState,
 		playerId,
-		myPlayerData,
-		isCurrentTurn,
+		myPlayer,
 		getCurrentPlayer,
+		setRolling,
 	} = useGameState();
 	const {
 		emitCageClick,
@@ -41,7 +41,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	const [poopResults, setPoopResults] = useState<ResultPoops[]>([]);
 	const [diceResult, setDiceResult] = useState<number>(0);
 	const [showDiceResult, setShowDiceResult] = useState<boolean>(false);
-	const [rolling, setRolling] = useState(false);
 
 	useEffect(() => {
 		const unsubscribe = listenForGameStateUpdate(updateGameState);
@@ -72,18 +71,18 @@ const GameBoard: React.FC<GameBoardProps> = ({
 				setRolling(false);
 			});
 		},
-		[emitRollDice]
+		[emitRollDice, setRolling]
 	);
 
 	useEffect(() => {
 		if (
 			gameState.phase === "main" &&
-			myPlayerData?.action === "POOP" &&
-			myPlayerData.current
+			myPlayer?.action === "POOP" &&
+			myPlayer.current
 		) {
 			emitPoopAction();
 		}
-	}, [gameState.phase, myPlayerData, emitPoopAction]);
+	}, [gameState.phase, myPlayer, emitPoopAction]);
 
 	if (!gameState || !gameState.players) {
 		return <div>Loading...</div>;
@@ -113,11 +112,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 				</div>
 				<div className="bg-white shadow-lg">
 					<PlayerAreaBoard
-						myPlayerData={myPlayerData}
-						isCurrentTurn={isCurrentTurn}
 						handleCageClick={emitCageClick}
-						gameState={gameState}
-						rolling={rolling}
 						handleRollDice={handleRollDice}
 					/>
 				</div>
