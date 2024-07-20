@@ -1,6 +1,6 @@
 import React from "react";
 import { Animal } from "../../types/types";
-import BoardArea from "./BoardArea";
+import BoardPanel from "./BoardPanel";
 import { useGameState } from "../../hooks/useGameState";
 
 interface PlayerAreaBoardProps {
@@ -17,7 +17,7 @@ const PlayerAreaBoard: React.FC<PlayerAreaBoardProps> = ({
 	return (
 		<div className="">
 			{myPlayerData && (
-				<BoardArea
+				<BoardPanel
 					onCageClick={handleCageClick}
 					handleRollDice={handleRollDice}
 				/>

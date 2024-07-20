@@ -8,7 +8,7 @@ import OtherPlayersSection from "./OtherPlayer/OtherPlayersSection";
 import PlayerAreaBoard from "./PlayArea/PlayerAreaBoard";
 import GameInfo from "./GameInfo";
 import ResultDisplay from "./ResultDisplay";
-import AnimalCardsSection from "./AnimalCardSection";
+import AnimalCardsSection from "./AnimalShop/AnimalCardSection";
 import DiceRollAnimation from "./DiceRollAnimation";
 
 interface GameBoardProps {

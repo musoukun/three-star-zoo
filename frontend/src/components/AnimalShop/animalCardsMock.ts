@@ -1,4 +1,4 @@
-import { AnimalCard } from "../types/types";
+import { AnimalCard } from "../../types/types";
 
 const animalCardsMock: AnimalCard[] = [
 	{

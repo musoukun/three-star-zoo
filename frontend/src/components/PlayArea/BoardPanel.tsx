@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Animal, Board } from "../../types/types";
 import ActionProgressBar from "../ActionProgressBar";
-import LeftPanel from "./LeftPanel";
+import LeftPanel from "./ActionPanel";
 import CageArea from "./CageArea";
 import { ActionState } from "../../types/ActionState";
 import { useGameState } from "../../hooks/useGameState";
 
-interface BoardAreaProps {
+interface BoardPanelProps {
 	onCageClick: (cageNumber: string, animal: Animal) => void;
 	handleRollDice: (diceCount: number) => void;
 }
 
-const BoardArea: React.FC<BoardAreaProps> = ({
+const BoardPanel: React.FC<BoardPanelProps> = ({
 	onCageClick,
 	handleRollDice,
 }) => {
@@ -91,4 +91,4 @@ const BoardArea: React.FC<BoardAreaProps> = ({
 	);
 };
 
-export default BoardArea;
+export default BoardPanel;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import axios from "axios";
-import { GameState, Player } from "../types/types";
-import { getOrCreatePlayerId } from "../utils/uuid";
+import { GameState, Player } from "../../types/types";
+import { getOrCreatePlayerId } from "../../utils/uuid";
 
 export type Room = {
 	id: string;

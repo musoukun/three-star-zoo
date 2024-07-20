@@ -13,7 +13,7 @@ interface LeftPanelProps {
 	placedAnimals: { [key: string]: number };
 }
 
-const LeftPanel: React.FC<LeftPanelProps> = ({
+const ActionPanel: React.FC<LeftPanelProps> = ({
 	selectedAnimal,
 	handleCancel,
 	handleAnimalSelect,
@@ -94,4 +94,4 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
 	);
 };
 
-export default LeftPanel;
+export default ActionPanel;
