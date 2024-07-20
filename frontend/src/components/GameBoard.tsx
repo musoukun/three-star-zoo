@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import { useRecoilState } from "recoil";
@@ -36,7 +37,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	// 結果画面用
 	const [showPoopResults, setShowPoopResults] = useState(false);
 	const [poopResults, setPoopResults] = useState<ResultPoops[]>([]);
-	// const [lastProcessedVersion, setLastProcessedVersion] = useState<number>(0);
 	const [diceResult, setDiceResult] = useState<number>(0);
 	const [showDiceResult, setShowDiceResult] = useState<boolean>(false);
 	const [rolling, setRolling] = useState(false);
@@ -215,8 +215,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
 				<div className=" bg-white shadow-lg">
 					<PlayerAreaBoard
 						myPlayerData={myPlayerData}
-						isCurrentTurn={isCurrentTurn}
 						handleCageClick={handleCageClick}
+						isCurrentTurn={isCurrentTurn}
 						gameState={gameState}
 						socket={socket}
 						roomId={roomId}
@@ -312,9 +312,10 @@ const PlayerAreaBoard: React.FC<{
 	<div className="">
 		{myPlayerData && (
 			<AreaBoard
+				onCageClick={handleCageClick}
+				handleRollDice={handleRollDice}
 				board={myPlayerData.board as Board}
 				isCurrentTurn={isCurrentTurn}
-				onCageClick={handleCageClick}
 				phase={gameState.phase}
 				action={myPlayerData.action as ActionState}
 				socket={socket}
@@ -323,7 +324,6 @@ const PlayerAreaBoard: React.FC<{
 				diceResult={myPlayerData.diceResult || null}
 				inventory={myPlayerData.inventory as Animal[]}
 				rolling={rolling}
-				handleRollDice={handleRollDice}
 			/>
 		)}
 	</div>

@@ -141,6 +141,15 @@ export class GameService {
 	}
 
 	/**
+	 * ボードを初期化します。
+	 * @returns
+	 */
+	private createEmptyBoard(): Board {
+		const board: Board = initialBoard;
+		return board;
+	}
+
+	/**
 	 * プレイヤーのアクションを更新します。
 	 * @param {GameState} gameState - ゲームの状態
 	 * @param {string} playerId - プレイヤーID
@@ -224,41 +233,6 @@ export class GameService {
 	}
 
 	/**
-	 * ダイスを振ります。
-	 * @param gameState
-	 * @param playerId
-	 * @returns
-	 */
-	rollDice(gameState: GameState, playerId: string): GameState {
-		const diceResult = Math.floor(Math.random() * 6) + 1;
-		const updatedPlayers = gameState.players.map((player) =>
-			player.id === playerId ? { ...player, diceResult } : player
-		);
-		return { ...gameState, players: updatedPlayers };
-	}
-
-	/**
-	 * ボードを初期化します。
-	 * @returns
-	 */
-	private createEmptyBoard(): Board {
-		const board: Board = initialBoard;
-		return board;
-	}
-
-	/**
-	 * ボード上の動物の数を数えます。
-	 * @param {Board} board - ボード
-	 * @returns {number} - ボード上の動物の数
-	 */
-	private countAnimalsOnBoard(board: Board): number {
-		return Object.values(board).reduce(
-			(count, cage) => count + cage.animals.length,
-			0
-		);
-	}
-
-	/**
 	 * gameStateに異常がないか確認します。
 	 * @param roomId
 	 * @returns
@@ -328,19 +302,31 @@ export class GameService {
 			})
 		);
 
-		// 合計を追加(frontendでやることにした)
-		// const total = results.reduce((sum, item) => sum + item.subtotal, 0);
-		// results.push({
-		// 	animalId: "Total",
-		// 	animalCount: results.reduce(
-		// 		(sum, item) => sum + item.animalCount,
-		// 		0
-		// 	),
-		// 	poopIcon: "💩",
-		// 	poopCost: total,
-		// 	subtotal: total,
-		// });
-
 		return results;
+	}
+	/**
+	 * ボード上の動物の数を数えます。
+	 * @param {Board} board - ボード
+	 * @returns {number} - ボード上の動物の数
+	 */
+	private countAnimalsOnBoard(board: Board): number {
+		return Object.values(board).reduce(
+			(count, cage) => count + cage.animals.length,
+			0
+		);
+	}
+
+	/**
+	 * ダイスを振ります。
+	 * @param gameState
+	 * @param playerId
+	 * @returns
+	 */
+	rollDice(gameState: GameState, playerId: string): GameState {
+		const diceResult = Math.floor(Math.random() * 6) + 1;
+		const updatedPlayers = gameState.players.map((player) =>
+			player.id === playerId ? { ...player, diceResult } : player
+		);
+		return { ...gameState, players: updatedPlayers };
 	}
 }

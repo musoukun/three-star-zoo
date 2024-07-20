@@ -38,6 +38,7 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 	diceResult,
 	inventory,
 	rolling,
+	handleRollDice,
 }) => {
 	const [selectedAnimal, setSelectedAnimal] = useState<string | null>(null);
 	const [placedAnimals, setPlacedAnimals] = useState<{
@@ -118,7 +119,8 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 					roomId={roomId}
 					playerId={playerId}
 					diceResult={diceResult}
-					rollring={rolling}
+					rolling={rolling}
+					handleRollDice={handleRollDice}
 				/>
 				<BoardArea
 					board={board}
@@ -153,6 +155,7 @@ const LeftPanel: React.FC<{
 	playerId: string;
 	diceResult: number | null;
 	rolling: boolean;
+	handleRollDice: (diceCount: number) => void;
 }> = ({
 	phase,
 	isCurrentTurn,
@@ -167,6 +170,7 @@ const LeftPanel: React.FC<{
 	playerId,
 	diceResult,
 	rolling,
+	handleRollDice,
 }) => {
 	return (
 		<div className="w-1/3 ">
