@@ -1,6 +1,5 @@
 import { GameState, Player } from "../types/types";
-// import { atomFamily } from "recoil";
-import { atom } from "recoil";
+import { atom, atomFamily, selectorFamily } from "recoil";
 
 // 現在自分のターン中のプレイヤー情報を表すAtom
 export const currentPlayerAtom = atom<Player>({
@@ -39,6 +38,23 @@ export const gameStateAtom = atom<GameState>({
 export const myPlayerAtom = atom<Player | null>({
 	key: "myPlayerAtom",
 	default: null,
+});
+
+export const myPlayerAtomFamily = atomFamily<Player | null, string>({
+	key: "playerAtom",
+	default: selectorFamily({
+		key: "playerDefault",
+		get:
+			(playerId) =>
+			({ get }) => {
+				const gameState = get(gameStateAtom);
+				return (
+					gameState.players.find(
+						(player) => player.id === playerId
+					) ?? null
+				);
+			},
+	}),
 });
 
 export const rollingAtom = atom<boolean>({

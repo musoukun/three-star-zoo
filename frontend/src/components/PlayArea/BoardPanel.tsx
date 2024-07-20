@@ -16,30 +16,26 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 	handleRollDice,
 }) => {
 	const {
-		getMyPlayerBoard,
 		isCurrentTurn,
-		getPhase,
-		getMyPlayerAction,
-		getMyPlayerInventory,
+		phase,
+		myPlayerBoard,
+		myPlayerAction,
+		myPlayerInventory,
 	} = useGameState();
-	const board = getMyPlayerBoard();
-
-	const phase = getPhase();
-	const action = getMyPlayerAction();
-	const inventory = getMyPlayerInventory();
 
 	const [selectedAnimal, setSelectedAnimal] = useState<string | null>(null);
 
+	// 動物を配置した数をカウント
 	const placedAnimals = useMemo(() => {
 		const newPlacedAnimals: { [key: string]: number } = {};
-		Object.values(board).forEach((cage) => {
+		Object.values(myPlayerBoard).forEach((cage) => {
 			cage.animals.forEach((animal) => {
 				newPlacedAnimals[animal.id] =
 					(newPlacedAnimals[animal.id] || 0) + 1;
 			});
 		});
 		return newPlacedAnimals;
-	}, [board]);
+	}, [myPlayerBoard]);
 
 	const handleAnimalSelect = (animal: string) => {
 		setSelectedAnimal(animal);
@@ -54,9 +50,9 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 			isCurrentTurn &&
 			selectedAnimal &&
 			phase === "init" &&
-			action === ActionState.INIT
+			myPlayerAction === ActionState.INIT
 		) {
-			const animalObject = inventory.find(
+			const animalObject = myPlayerInventory.find(
 				(animal) => animal.id === selectedAnimal
 			);
 			if (animalObject) {
@@ -65,6 +61,15 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 			}
 		}
 	};
+
+	// // デバッグ用
+	// console.log("BoardPanel rendering", {
+	// 	board: myPlayerBoard,
+	// 	currentTurn: isCurrentTurn,
+	// 	phase: phase,
+	// 	action: myPlayerAction,
+	// 	inventory: myPlayerInventory,
+	// });
 
 	return (
 		<div className="flex flex-col h-full">

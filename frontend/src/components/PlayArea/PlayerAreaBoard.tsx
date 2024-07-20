@@ -2,6 +2,7 @@ import React from "react";
 import { Animal } from "../../types/types";
 import BoardPanel from "./BoardPanel";
 import { useGameState } from "../../hooks/useGameState";
+import { ErrorBoundary } from "react-error-boundary";
 
 interface PlayerAreaBoardProps {
 	handleCageClick: (cageNumber: string, animal: Animal) => void;
@@ -12,16 +13,18 @@ const PlayerAreaBoard: React.FC<PlayerAreaBoardProps> = ({
 	handleCageClick,
 	handleRollDice,
 }) => {
-	const myPlayerData = useGameState().getMyPlayer();
+	const { myPlayer } = useGameState();
 
 	return (
 		<div className="">
-			{myPlayerData && (
-				<BoardPanel
-					onCageClick={handleCageClick}
-					handleRollDice={handleRollDice}
-				/>
-			)}
+			<ErrorBoundary fallback={<div>エラーが発生しました</div>}>
+				{myPlayer && (
+					<BoardPanel
+						onCageClick={handleCageClick}
+						handleRollDice={handleRollDice}
+					/>
+				)}
+			</ErrorBoundary>
 		</div>
 	);
 };

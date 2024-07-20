@@ -22,6 +22,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	roomId,
 	animalCards,
 }) => {
+	// Recoilから管理されているゲーム状態とその更新関数を取得
 	const {
 		gameState,
 		updateGameState,
@@ -30,6 +31,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		getCurrentPlayer,
 		setRolling,
 	} = useGameState();
+
+	// ソケット通信に関する関数を取得
 	const {
 		emitCageClick,
 		emitRollDice,
@@ -37,57 +40,66 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		listenForGameStateUpdate,
 	} = useSocketIO(socket, roomId, playerId);
 
+	// ローカルの状態管理
 	const [showPoopResults, setShowPoopResults] = useState(false);
 	const [poopResults, setPoopResults] = useState<ResultPoops[]>([]);
 	const [diceResult, setDiceResult] = useState<number>(0);
 	const [showDiceResult, setShowDiceResult] = useState<boolean>(false);
 
+	// ゲーム状態の更新をリッスンするEffect
 	useEffect(() => {
+		// ゲーム状態の更新をリッスンし、更新があればupdateGameStateを呼び出す
 		const unsubscribe = listenForGameStateUpdate(updateGameState);
-		return unsubscribe;
+		return unsubscribe; // コンポーネントのアンマウント時にリスナーを解除
 	}, [listenForGameStateUpdate, updateGameState]);
 
+	// うんち計算結果を状態に反映するEffect
 	useEffect(() => {
 		if (gameState.poopsResult) {
 			setPoopResults(gameState.poopsResult);
 		}
 	}, [gameState.poopsResult]);
 
+	// うんち計算結果の表示を制御するEffect
 	useEffect(() => {
 		if (poopResults.length > 0) {
 			setShowPoopResults(true);
 		}
 	}, [poopResults]);
 
+	// サイコロを振る処理
 	const handleRollDice = useCallback(
 		(diceCount: number) => {
-			setRolling(true);
+			setRolling(true); // サイコロを振っている状態をセット
 			emitRollDice(diceCount, (success: boolean) => {
 				if (success) {
 					console.log("Dice roll successful");
 				} else {
 					console.error("Dice roll failed");
 				}
-				setRolling(false);
+				setRolling(false); // サイコロを振り終わった状態をセット
 			});
 		},
 		[emitRollDice, setRolling]
 	);
 
+	// うんちアクションを自動で実行するEffect
 	useEffect(() => {
 		if (
 			gameState.phase === "main" &&
-			myPlayer?.action === "POOP" &&
+			myPlayer?.action === "poop" &&
 			myPlayer.current
 		) {
-			emitPoopAction();
+			emitPoopAction(); // うんちアクションをサーバーに送信
 		}
 	}, [gameState.phase, myPlayer, emitPoopAction]);
 
+	// ゲーム状態がロードされていない場合のローディング表示
 	if (!gameState || !gameState.players) {
 		return <div>Loading...</div>;
 	}
 
+	// 現在のプレイヤーと他のプレイヤーを取得
 	const currentPlayer = getCurrentPlayer(gameState.players);
 	const otherPlayers = gameState.players.filter(
 		(player) => player.id !== playerId

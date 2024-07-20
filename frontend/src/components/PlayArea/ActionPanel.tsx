@@ -21,18 +21,19 @@ const ActionPanel: React.FC<LeftPanelProps> = ({
 	placedAnimals,
 }) => {
 	const {
-		getPhase,
+		myPlayerAction,
+		phase,
+		myPlayerDiceResult,
+		myPlayerInventory,
 		isCurrentTurn,
-		getMyPlayerAction,
-		getMyPlayerDiceResult,
-		getMyPlayerInventory,
 		rolling,
 	} = useGameState();
 
-	const phase = getPhase();
-	const action = getMyPlayerAction();
-	const diceResult = getMyPlayerDiceResult();
-	const inventory = getMyPlayerInventory();
+	const action = myPlayerAction;
+	const diceResult = myPlayerDiceResult;
+	const inventory = myPlayerInventory;
+
+	console.log(" " + phase + " " + isCurrentTurn + " " + action);
 
 	return (
 		<div className="w-1/3">
