@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Animal, Board } from "../../types/types";
+import React, { useState, useMemo } from "react";
+import { Animal } from "../../types/types";
 import ActionProgressBar from "../ActionProgressBar";
-import LeftPanel from "./ActionPanel";
 import CageArea from "./CageArea";
 import { ActionState } from "../../types/ActionState";
 import { useGameState } from "../../hooks/useGameState";
+import ActionPanel from "./ActionPanel";
 
 interface BoardPanelProps {
 	onCageClick: (cageNumber: string, animal: Animal) => void;
@@ -15,22 +15,22 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 	onCageClick,
 	handleRollDice,
 }) => {
-	const board: Board = useGameState().getMyPlayerBoard();
-	const isCurrentTurn: boolean = useGameState().isCurrentTurn();
-	const phase = useGameState().getPhase();
-	const action: ActionState = useGameState().getMyPlayerAction();
-	const inventory = useGameState().getMyPlayerInventory();
+	const {
+		getMyPlayerBoard,
+		isCurrentTurn,
+		getPhase,
+		getMyPlayerAction,
+		getMyPlayerInventory,
+	} = useGameState();
+	const board = getMyPlayerBoard();
+
+	const phase = getPhase();
+	const action = getMyPlayerAction();
+	const inventory = getMyPlayerInventory();
 
 	const [selectedAnimal, setSelectedAnimal] = useState<string | null>(null);
-	const [placedAnimals, setPlacedAnimals] = useState<{
-		[key: string]: number;
-	}>({});
 
-	useEffect(() => {
-		updatePlacedAnimals();
-	}, [board]);
-
-	const updatePlacedAnimals = () => {
+	const placedAnimals = useMemo(() => {
 		const newPlacedAnimals: { [key: string]: number } = {};
 		Object.values(board).forEach((cage) => {
 			cage.animals.forEach((animal) => {
@@ -38,8 +38,8 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 					(newPlacedAnimals[animal.id] || 0) + 1;
 			});
 		});
-		setPlacedAnimals(newPlacedAnimals);
-	};
+		return newPlacedAnimals;
+	}, [board]);
 
 	const handleAnimalSelect = (animal: string) => {
 		setSelectedAnimal(animal);
@@ -72,7 +72,7 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 				className="flex flex-grow"
 				style={{ height: `calc(100% - 60px)` }}
 			>
-				<LeftPanel
+				<ActionPanel
 					placedAnimals={placedAnimals}
 					selectedAnimal={selectedAnimal}
 					handleAnimalSelect={handleAnimalSelect}

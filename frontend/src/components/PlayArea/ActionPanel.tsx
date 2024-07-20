@@ -38,7 +38,7 @@ const ActionPanel: React.FC<LeftPanelProps> = ({
 		<div className="w-1/3">
 			<div className="h-full bg-pink-100 border-2 border-[#8b4513] rounded-lg p-4 flex flex-col">
 				{phase === "init" &&
-					isCurrentTurn() &&
+					isCurrentTurn &&
 					action === ActionState.INIT && (
 						<div className="flex-grow">
 							{inventory.map((animal: Animal) => (
@@ -61,7 +61,7 @@ const ActionPanel: React.FC<LeftPanelProps> = ({
 						</div>
 					)}
 				{phase === "main" &&
-					isCurrentTurn() &&
+					isCurrentTurn &&
 					action === ActionState.ROLL && (
 						<div className="flex-grow flex flex-col justify-center">
 							<DiceRoll
@@ -79,7 +79,7 @@ const ActionPanel: React.FC<LeftPanelProps> = ({
 						</div>
 					)}
 				<div className="flex-grow flex items-center justify-center">
-					{isCurrentTurn() ? (
+					{isCurrentTurn ? (
 						<p className="text-gray-600 font-semibold">
 							あなたのターンです
 						</p>
