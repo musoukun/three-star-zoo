@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAnimalImage } from "../utils/importAnimalImages";
-
-interface ResultItem {
-	animalId: string;
-	animalCount: number;
-	poopIcon: string;
-	poopCost: number;
-	subtotal: number;
-}
+import { ResultPoops } from "../types/types";
 
 interface ResultDisplayProps {
-	results: ResultItem[];
+	results: ResultPoops[];
 	duration?: number; // 表示時間（ミリ秒）
 	onClose: () => void;
 }

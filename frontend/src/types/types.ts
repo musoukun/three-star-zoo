@@ -62,6 +62,8 @@ export type GameState = {
 	currentPlayer?: Player;
 	phase: "waiting" | "init" | "main" | "end";
 	roundNumber: number;
+	poopsResult: ResultPoops[];
+	version: number;
 	isTestMode?: boolean;
 };
 
@@ -88,10 +90,10 @@ export type Effect = {
 	adjacent?: [number, string, string]; // 隣接しているときの項目、第1引数に得られる数、第2引数にAnimalのidが入る、第3引数はonceかeach
 };
 
-export type ResultItem = {
-	animalId: string;
-	animalCount: number;
-	poopIcon: string;
-	poopCost: number;
-	subtotal: number;
-};
+export interface ResultPoops {
+	animalId: string; // 動物のID（または "Total" for 合計行）
+	animalCount: number; // その動物の数
+	poopIcon: string; // うんちのアイコン（例: "💩"）
+	poopCost: number; // 1匹あたりのうんちコスト
+	subtotal: number; // その動物の小計（animalCount * poopCost）
+}

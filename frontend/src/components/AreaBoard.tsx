@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { Animal, Board, Cage } from "../types/types";
 import { ActionState } from "../types/ActionState";
 import DiceRoll from "./DiceRoll";
 import { Socket } from "socket.io-client";
 import { getAnimalImage } from "../utils/importAnimalImages";
+import ActionProgressBar from "./ActionProgressBar";
 
 interface AreaBoardProps {
 	board: Board;
@@ -16,6 +18,8 @@ interface AreaBoardProps {
 	playerId: string;
 	diceResult: number | null;
 	inventory: Animal[];
+	rolling: boolean;
+	handleRollDice: (diceCount: number) => void;
 }
 
 /**
@@ -33,6 +37,7 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 	playerId,
 	diceResult,
 	inventory,
+	rolling,
 }) => {
 	const [selectedAnimal, setSelectedAnimal] = useState<string | null>(null);
 	const [placedAnimals, setPlacedAnimals] = useState<{
@@ -95,28 +100,37 @@ const AreaBoard: React.FC<AreaBoardProps> = ({
 	};
 
 	return (
-		<div className="flex">
-			<LeftPanel
-				phase={phase}
-				isCurrentTurn={isCurrentTurn}
-				action={action}
-				inventory={inventory}
-				placedAnimals={placedAnimals}
-				selectedAnimal={selectedAnimal}
-				handleAnimalSelect={handleAnimalSelect}
-				handleCancel={handleCancel}
-				socket={socket}
-				roomId={roomId}
-				playerId={playerId}
-				diceResult={diceResult}
-			/>
-			<BoardArea
-				board={board}
-				isCurrentTurn={isCurrentTurn}
-				selectedAnimal={selectedAnimal}
-				phase={phase}
-				handleCageClick={handleCageClick}
-			/>
+		<div className="flex flex-col h-full">
+			<div
+				className="flex flex-grow"
+				style={{ height: `calc(100% - 60px)` }}
+			>
+				<LeftPanel
+					phase={phase}
+					isCurrentTurn={isCurrentTurn}
+					action={action}
+					inventory={inventory}
+					placedAnimals={placedAnimals}
+					selectedAnimal={selectedAnimal}
+					handleAnimalSelect={handleAnimalSelect}
+					handleCancel={handleCancel}
+					socket={socket}
+					roomId={roomId}
+					playerId={playerId}
+					diceResult={diceResult}
+					rollring={rolling}
+				/>
+				<BoardArea
+					board={board}
+					isCurrentTurn={isCurrentTurn}
+					selectedAnimal={selectedAnimal}
+					phase={phase}
+					handleCageClick={handleCageClick}
+				/>
+			</div>
+			<div className="h-[60px]">
+				<ActionProgressBar currentAction={action} />
+			</div>
 		</div>
 	);
 };
@@ -138,6 +152,7 @@ const LeftPanel: React.FC<{
 	roomId: string;
 	playerId: string;
 	diceResult: number | null;
+	rolling: boolean;
 }> = ({
 	phase,
 	isCurrentTurn,
@@ -151,14 +166,17 @@ const LeftPanel: React.FC<{
 	roomId,
 	playerId,
 	diceResult,
+	rolling,
 }) => {
 	return (
 		<div className="w-1/3 ">
-			<div className="bg-pink-100 border-2 border-[#8b4513] rounded-lg p-4 h-full flex flex-col">
+			<div
+				className={`h-full bg-pink-100 border-2 border-[#8b4513] rounded-lg  p-4 flex flex-col`}
+			>
 				{phase === "init" &&
 					isCurrentTurn &&
 					action === ActionState.INIT && (
-						<div className="flex-grow overflow-y-auto">
+						<div className="flex-grow ">
 							{inventory.map((animal) => (
 								<AnimalButton
 									key={animal.id}
@@ -183,24 +201,26 @@ const LeftPanel: React.FC<{
 					action === ActionState.ROLL && (
 						<div className="flex-grow flex flex-col justify-center">
 							<DiceRoll
-								socket={socket}
-								roomId={roomId}
-								playerId={playerId}
-								onRollComplete={() => {}}
+								handleRollDice={handleRollDice}
+								rolling={rolling}
 							/>
 							{diceResult !== null && (
 								<DiceResult result={diceResult} />
 							)}
 						</div>
 					)}
-				{(!isCurrentTurn ||
-					(phase !== "init" && action !== ActionState.ROLL)) && (
-					<div className="flex-grow flex items-center justify-center">
+
+				<div className="flex-grow flex items-center justify-center">
+					{isCurrentTurn ? (
+						<p className="text-gray-600 font-semibold">
+							あなたのターンです
+						</p>
+					) : (
 						<p className="text-gray-500">
 							他のプレイヤーのターンです
 						</p>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 		</div>
 	);
@@ -249,9 +269,11 @@ const BoardArea: React.FC<{
 	phase: string;
 	handleCageClick: (cageNumber: string) => void;
 }> = ({ board, isCurrentTurn, selectedAnimal, phase, handleCageClick }) => (
-	<div className="w-2/3 h-full">
-		<div className="bg-[#e6f3d9] border-4 border-[#056df5] p-4 rounded-lg h-full flex flex-col">
-			<div className="flex-grow grid grid-cols-6 gap-2 overflow-y-auto">
+	<div className={`w-2/3`}>
+		<div
+			className={`bg-[#e6f3d9] border-4 border-[#056df5] p-4 rounded-lg flex flex-col`}
+		>
+			<div className="flex-grow grid grid-cols-6 gap-2">
 				{Object.entries(board).map(([cageNumber, cage]) => (
 					<CageCell
 						key={cageNumber}
@@ -264,7 +286,7 @@ const BoardArea: React.FC<{
 					/>
 				))}
 			</div>
-			<BoardFooter isCurrentTurn={isCurrentTurn} phase={phase} />
+			{/* <BoardFooter isCurrentTurn={isCurrentTurn} phase={phase} /> */}
 		</div>
 	</div>
 );
@@ -288,9 +310,16 @@ const CageCell: React.FC<{
 	phase,
 	handleCageClick,
 }) => {
+	const animalPositions = [
+		"top-0 left-0", // 左上
+		"top-0 right-0", // 右上
+		"bottom-0 left-0", // 左下
+		"bottom-0 right-0", // 右下
+	];
+
 	return (
 		<div
-			className={`bg-white border-2 border-[#8b4513] h-20 rounded-lg flex items-center justify-center text-2xl font-bold ${
+			className={`bg-white border-2 border-[#8b4513] h-28 text-gray-300 rounded-lg flex items-center justify-center text-2xl font-bold ${
 				cageNumber === "cage11-12" ? "col-span-2" : ""
 			} cursor-pointer relative ${
 				isCurrentTurn && selectedAnimal && phase === "init"
@@ -300,11 +329,11 @@ const CageCell: React.FC<{
 			onClick={() => handleCageClick(cageNumber)}
 		>
 			{cageNumber.replace("cage", "")}
-			<div className="absolute top-0 right-0 flex">
-				{cage.animals.map((animal, index) => (
+			<div className="absolute inset-0">
+				{cage.animals.slice(0, 4).map((animal, index) => (
 					<div
-						key={`${cageNumber}-${animal}-${index}`}
-						className="w-8 h-8 rounded-full overflow-hidden ml-1"
+						key={`${cageNumber}-${animal.id}-${index}`}
+						className={`absolute ${animalPositions[index]} w-12 h-12 rounded-full overflow-hidden`}
 					>
 						<img
 							src={getAnimalImage(animal.id)}
@@ -317,25 +346,24 @@ const CageCell: React.FC<{
 		</div>
 	);
 };
-
-const BoardFooter: React.FC<{
-	isCurrentTurn: boolean;
-	phase: string;
-}> = ({ isCurrentTurn, phase }) => (
-	<div className="mt-4 flex justify-between items-center">
-		<div className="text-xl font-bold">エリアボード</div>
-		<div className="flex space-x-4">
-			<div className="flex items-center">
-				<span>
-					{isCurrentTurn
-						? phase === "init"
-							? "動物を配置してください"
-							: "あなたのターンです"
-						: "他のプレイヤーのターンです"}
-				</span>
-			</div>
-		</div>
-	</div>
-);
+// const BoardFooter: React.FC<{
+// 	isCurrentTurn: boolean;
+// 	phase: string;
+// }> = ({ isCurrentTurn, phase }) => (
+// 	<div className="mt-4 flex justify-between items-center">
+// 		<div className="text-xl font-bold">エリアボード</div>
+// 		<div className="flex space-x-4">
+// 			<div className="flex items-center">
+// 				<span>
+// 					{!isCurrentTurn
+// 						? phase === "init"
+// 							? "動物を配置してください"
+// 							: "あなたのターンです"
+// 						: "他のプレイヤーのターンです"}
+// 				</span>
+// 			</div>
+// 		</div>
+// 	</div>
+// );
 
 export default AreaBoard;

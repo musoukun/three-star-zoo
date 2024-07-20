@@ -1,16 +1,24 @@
 // GameController.ts
-import { PrismaClient, Room } from "@prisma/client";
+import { Prisma, PrismaClient, Room } from "@prisma/client";
 import { GameService } from "../services/GameService";
 import { RoomService } from "../services/RoomService";
-import { GameState, Player, Animal, ActionState } from "../types/types";
-import { count } from "console";
+import {
+	GameState,
+	Player,
+	Animal,
+	ActionState,
+	ResultPoops,
+} from "../types/types";
+import { RoomRepository } from "../repository/RoomRepository";
+import { R, s } from "vite/dist/node/types.d-aGj9QkWt";
 
 const prisma = new PrismaClient();
 
 export class GameController {
 	constructor(
-		private gameService: GameService = new GameService(),
-		private roomService: RoomService = new RoomService(prisma)
+		private gameService: GameService = new GameService(prisma),
+		private roomService: RoomService = new RoomService(prisma),
+		private roomRepo: RoomRepository = new RoomRepository(prisma)
 	) {}
 
 	async handleStartGame(
@@ -46,21 +54,12 @@ export class GameController {
 		cageNumber: string,
 		animal: Animal
 	): Promise<GameState> {
-		const room: Room | null = await this.roomService.getRoomById(roomId);
-		if (!room || !room.gameState) {
-			throw new Error("Room or game state not found");
-		}
-
-		// ゲームの状態が正しいかどうかを確認
-		this.gameService.validateGameStateIntegrity(
-			room.gameState as unknown as GameState,
-			room.prevGameState as unknown as GameState
-		);
-
+		// ゲームデータとルームデータをチェック
+		const room = await this.gameService.isValidateGameState(roomId);
 		// 動物を配置する
 		console.log("配置する動物", animal);
 		let updatedGameState = this.gameService.placeAnimal(
-			room.gameState as unknown as GameState,
+			room.gameState as Prisma.JsonObject,
 			playerId,
 			cageNumber,
 			animal
@@ -98,15 +97,8 @@ export class GameController {
 	}
 
 	async handleDiceRoll(roomId: string, playerId: string): Promise<GameState> {
-		const room: Room | null = await this.roomService.getRoomById(roomId);
-		if (!room || !room.gameState) {
-			throw new Error("Room or game state not found");
-		}
-
-		this.gameService.validateGameStateIntegrity(
-			room.gameState as unknown as GameState,
-			room.prevGameState as unknown as GameState
-		);
+		// ゲームデータとルームデータをチェック
+		const room = await this.gameService.isValidateGameState(roomId);
 
 		let updatedGameState = this.gameService.rollDice(
 			room.gameState as unknown as GameState,
@@ -124,5 +116,61 @@ export class GameController {
 		);
 	}
 
-	// 他のゲームアクションハンドラーをここに追加...
+	/**
+	 * プレイヤーのpoopアクションを処理します。
+	 * @param roomId
+	 * @param playerId
+	 * @returns 更新されたルームデータとpoopの結果
+	 * @throws ゲームデータが不正な場合
+	 */
+	async handlePoopAction(
+		roomId: string,
+		playerId: string
+	): Promise<GameState> {
+		// ゲームデータとルームデータをチェック
+		const room: Room = await this.gameService.isValidateGameState(roomId);
+
+		const gameState = room.gameState as unknown as GameState;
+		const currentPlayer = gameState.players.find(
+			(p) => p.id === playerId && p.current
+		);
+
+		if (!currentPlayer) {
+			throw new Error("Current player not found");
+		}
+
+		const totalPoops = this.gameService.calculateTotalPoops(
+			currentPlayer.board
+		);
+		const newPlayerPoops = currentPlayer.poops + totalPoops;
+
+		const poopsResult: ResultPoops[] =
+			this.gameService.calculatePoopResults(currentPlayer.board);
+
+		// newPlayerPoopsをGamestateに反映
+		const updatePoops = {
+			...gameState,
+			players: gameState.players.map((p) =>
+				p.id === playerId ? { ...p, poops: newPlayerPoops } : p
+			),
+		};
+
+		// プレイヤーのアクションを更新
+		const updateAction = this.gameService.updatePlayerAction(
+			updatePoops,
+			playerId,
+			"roll"
+		);
+
+		// ゲームの状態を更新
+		const updateGamaStateData: GameState =
+			await this.roomService.updateRoomWithGameState(
+				room.id,
+				updateAction
+			);
+
+		updateGamaStateData.poopsResult = poopsResult;
+
+		return updateGamaStateData;
+	}
 }

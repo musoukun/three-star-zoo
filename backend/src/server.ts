@@ -5,9 +5,10 @@ import cors from "cors";
 import { PrismaClient, Room } from "@prisma/client";
 
 import { corsOptions } from "./config";
-import { getRoomList } from "./repository/RoomRepository";
+
 import { GameRoom } from "./types/types";
 import { SocketEventHandler } from "./routes/SocketEvents";
+import { RoomRepository } from "./repository/RoomRepository";
 
 const prisma = new PrismaClient();
 const app = express();
@@ -21,7 +22,8 @@ app.use(cors(corsOptions));
 
 app.get("/api/rooms", async (req, res) => {
 	try {
-		const roomList: Room[] = await getRoomList(prisma);
+		const roomRepo = new RoomRepository(prisma);
+		const roomList: Room[] = await roomRepo.getRoomList();
 		res.json(roomList);
 	} catch (error) {
 		console.error("Failed to fetch rooms:", error);

@@ -9,13 +9,14 @@ import {
 	Board,
 	GameState,
 	Player,
-	ResultItem,
+	ResultPoops,
 } from "../types/types";
 import AreaBoard from "./AreaBoard";
 import OtherPlayer from "./OtherPlayer";
 import { ActionState } from "../types/ActionState";
 import ResultDisplay from "./ResultDisplay";
 import AnimalCardsSection from "./AnimalCardSection";
+import DiceRollAnimation from "./DiceRollAnimation";
 
 interface GameBoardProps {
 	socket: Socket;
@@ -33,8 +34,36 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	const [myPlayerData, setMyPlayerData] = useState<Player | undefined>();
 	const [isCurrentTurn, setIsCurrentTurn] = useState<boolean>(false);
 	// 結果画面用
-	const [showResults, setShowResults] = useState(false);
-	const [results, setResults] = useState<ResultItem[]>([]);
+	const [showPoopResults, setShowPoopResults] = useState(false);
+	const [poopResults, setPoopResults] = useState<ResultPoops[]>([]);
+	// const [lastProcessedVersion, setLastProcessedVersion] = useState<number>(0);
+	const [diceResult, setDiceResult] = useState<number>(0);
+	const [showDiceResult, setShowDiceResult] = useState<boolean>(false);
+	const [rolling, setRolling] = useState(false);
+
+	// 例: うんち計算の結果を表示する関数
+	const showPoopCalculationResults = useCallback(() => {
+		console.log("Showing poop calculation poopResults:", poopResults);
+		if (poopResults.length > 0) {
+			console.log("poopResults is not empty");
+			setShowPoopResults(true);
+		}
+	}, [poopResults]);
+
+	useEffect(() => {
+		if (poopResults.length > 0) {
+			showPoopCalculationResults();
+		}
+	}, [poopResults]);
+
+	// ダイスの結果を取得
+	const handleShowDiceResults = useCallback(() => {
+		console.log("Showing dice result:", diceResult);
+		if (diceResult) {
+			console.log("diceResult is not empty");
+			setShowDiceResult(true);
+		}
+	}, [diceResult]);
 
 	// 現在のプレイヤーを取得
 	const getCurrentPlayer = useCallback((players: Player[]) => {
@@ -47,61 +76,93 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		setPlayerId(id);
 	}, []);
 
-	// ゲームの状態を更新
-	const updateGameState = useCallback(
+	// サーバーからのゲーム状態の更新を受け取る
+	const handleGameStateUpdate = async (newGameStateData: GameState) => {
+		console.log("Received new game state:", newGameStateData);
+		await updateGameAndPlayerState(newGameStateData);
+	};
+
+	useEffect(() => {
+		handleGameStateUpdate(gameState);
+		socket.on("gameStateUpdate", handleGameStateUpdate);
+
+		return () => {
+			socket.off("gameStateUpdate", handleGameStateUpdate);
+		};
+	}, [socket, handleGameStateUpdate]);
+
+	// ゲームの状態とプレイヤーのデータを更新する関数
+	const updateGameAndPlayerState = useCallback(
 		(newGameState: GameState) => {
 			console.log("Updating game state:", newGameState);
 			setGameState(newGameState);
-			updateMyPlayerData(newGameState);
-		},
-		[setGameState]
-	);
 
-	// プレイヤーのデータを更新
-	const updateMyPlayerData = useCallback(
-		(newGameState: GameState) => {
-			// 自身のプレイヤーデータを取得
+			if (newGameState.poopsResult) {
+				setPoopResults(newGameState.poopsResult);
+			}
+
 			const updatedMyPlayer = newGameState.players.find(
 				(player) => player.id === playerId
 			);
 			if (updatedMyPlayer) {
 				console.log("Updating my player data:", updatedMyPlayer);
 				setMyPlayerData(updatedMyPlayer);
-				// 自身のターンかどうかを判定
-				setIsCurrentTurn(updatedMyPlayer.current || false);
+				setIsCurrentTurn(updatedMyPlayer.current as boolean);
 			}
 		},
-		[playerId]
+		[playerId, setGameState]
 	);
 
-	// ゲームの状態を更新
 	useEffect(() => {
-		if (gameState && playerId) {
-			updateMyPlayerData(gameState);
+		handleGameStateChange();
+	}, [gameState]);
+
+	const handleRollDice = useCallback(
+		(diceCount: number) => {
+			setRolling(true);
+			socket.emit(
+				"rollDice",
+				{ roomId, playerId, diceCount },
+				(success: boolean) => {
+					if (success) {
+						console.log("Dice roll successful");
+						// ここで必要な処理を追加（例：状態の更新など）
+					} else {
+						console.error("Dice roll failed");
+					}
+					setRolling(false);
+				}
+			);
+		},
+		[socket, roomId, playerId]
+	);
+
+	// GameStateの変更を検知し、必要なアクションを実行する
+	const handleGameStateChange = useCallback(() => {
+		console.log("ターンごとの自動イベントチェック");
+		if (
+			gameState.phase === "main" &&
+			gameState.players.find((p) => p.id === playerId)?.action ===
+				ActionState.POOP &&
+			gameState.players.find((p) => p.id === playerId)?.current
+		) {
+			try {
+				console.log("poop action");
+				socket.emit("poopAction", { roomId, playerId });
+			} catch (e) {
+				console.error(e);
+			}
 		}
-		// gameStateか、自身のプレイヤーIDやデータが変更された場合に再実行
-	}, [gameState, playerId, updateMyPlayerData]);
 
-	useEffect(() => {
-		const handleGameStateUpdate = (newGameStateData: GameState) => {
-			console.log("Received new game state:", newGameStateData);
-			updateGameState(newGameStateData);
-		};
-
-		const handleGameError = (error: { message: string }) => {
-			console.error("Game error:", error.message);
-			// ここでエラーメッセージを表示するなどの処理を追加できます
-		};
-
-		socket.on("gameStateUpdate", handleGameStateUpdate);
-		socket.on("gameError", handleGameError);
-
-		return () => {
-			socket.off("gameStateUpdate", handleGameStateUpdate);
-			socket.off("gameError", handleGameError);
-		};
-		// backendからのデータを受信した場合に再実行
-	}, [socket, updateGameState]);
+		if (
+			gameState.phase === "main" &&
+			gameState.players.find((p) => p.id === playerId)?.action ===
+				ActionState.ROLL &&
+			gameState.players.find((p) => p.id === playerId)?.current
+		) {
+			showPoopCalculationResults();
+		}
+	}, [gameState, playerId, socket, roomId]);
 
 	const handleCageClick = useCallback(
 		(cageNumber: string, animal: Animal) => {
@@ -134,31 +195,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		(player) => player.id !== playerId
 	);
 
-	const handleShowResults = (newResults: ResultItem[]) => {
-		setResults(newResults);
-		setShowResults(true);
-	};
-
-	// 例: うんち計算の結果を表示する関数
-	const showPoopCalculationResults = () => {
-		const calculationResults: ResultItem[] = [
-			{
-				animalId: "RessaPanda",
-				animalCount: 2,
-				poopIcon: "💩",
-				poopCost: 3,
-				subtotal: 6,
-			},
-			{
-				animalId: "Penguin",
-				animalCount: 1,
-				poopIcon: "💩",
-				poopCost: 2,
-				subtotal: 2,
-			},
-		];
-		handleShowResults(calculationResults);
-	};
 	return (
 		<div className="flex h-screen bg-[#f0e6d2] font-crimson-text">
 			<div className="flex flex-col w-5/6">
@@ -185,22 +221,27 @@ const GameBoard: React.FC<GameBoardProps> = ({
 						socket={socket}
 						roomId={roomId}
 						playerId={playerId}
+						rolling={rolling}
+						handleRollDice={handleRollDice}
 					/>
 				</div>
+			</div>
+			<div className="w-1/6 p-2 bg-[#e8f1d3] overflow-y-auto">
+				<GameInfo currentPlayer={currentPlayer} gameState={gameState} />
 				{/* テスト用ボタン */}
-				<button onClick={showPoopCalculationResults}>
+				<button
+					className="bg-red-200 rounded-xl p-1 mt-1"
+					onClick={showPoopCalculationResults}
+				>
 					うんち計算結果を表示
 				</button>
 			</div>
-			<div className="w-1/6 p-2 bg-[#e1f3cb] overflow-y-auto">
-				<GameInfo currentPlayer={currentPlayer} gameState={gameState} />
-			</div>
-
-			{showResults && (
+			{showDiceResult && <DiceRollAnimation result={diceResult} />}
+			{showPoopResults && (
 				<ResultDisplay
-					results={results}
+					results={poopResults}
 					duration={5000}
-					onClose={() => setShowResults(false)}
+					onClose={() => setShowPoopResults(false)}
 				/>
 			)}
 		</div>
@@ -254,7 +295,9 @@ const PlayerAreaBoard: React.FC<{
 	gameState: GameState;
 	socket: Socket;
 	roomId: string;
+	rolling: boolean;
 	playerId: string;
+	handleRollDice: (diceCount: number) => void;
 }> = ({
 	myPlayerData,
 	isCurrentTurn,
@@ -263,6 +306,8 @@ const PlayerAreaBoard: React.FC<{
 	socket,
 	roomId,
 	playerId,
+	rolling,
+	handleRollDice,
 }) => (
 	<div className="">
 		{myPlayerData && (
@@ -277,6 +322,8 @@ const PlayerAreaBoard: React.FC<{
 				playerId={playerId}
 				diceResult={myPlayerData.diceResult || null}
 				inventory={myPlayerData.inventory as Animal[]}
+				rolling={rolling}
+				handleRollDice={handleRollDice}
 			/>
 		)}
 	</div>

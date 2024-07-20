@@ -27,6 +27,7 @@ export class TestGameService {
 			phase: "waiting",
 			roundNumber: 1,
 			isTestMode: true,
+			version: 1,
 		};
 
 		// Roomを初期化

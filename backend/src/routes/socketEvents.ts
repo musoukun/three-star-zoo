@@ -1,12 +1,12 @@
 import { Server, Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
-import { getRoomInfo } from "../repository/RoomRepository";
 import { GameService } from "../services/GameService";
 import { RoomService } from "../services/RoomService";
 import { TestGameService } from "../services/TestGameService";
-import { Player, GameState, Animal } from "../types/types";
+import { Player, GameState, Animal, ResultPoops } from "../types/types";
 import { TestGameController } from "../controller/TestGameController";
 import { GameController } from "../controller/GameController";
+import { RoomRepository } from "../repository/RoomRepository";
 
 export class SocketEventHandler {
 	private io: Server;
@@ -15,13 +15,15 @@ export class SocketEventHandler {
 	private roomService: RoomService;
 	private testGameController: TestGameController;
 	private gameController: GameController;
+	private roomReposiotry: RoomRepository;
 
 	constructor(io: Server, prisma: PrismaClient) {
 		this.io = io;
 		this.prisma = prisma;
-		this.gameService = new GameService();
+		this.gameService = new GameService(prisma);
 		this.roomService = new RoomService(prisma);
 		this.testGameController = new TestGameController(prisma);
+		this.roomReposiotry = new RoomRepository(prisma);
 		this.gameController = new GameController(
 			this.gameService,
 			this.roomService
@@ -41,6 +43,7 @@ export class SocketEventHandler {
 			});
 		});
 	}
+
 	private emitGameState(gameState: GameState, socketId: string): void {
 		this.io.to(socketId).emit("gameStateUpdate", gameState);
 	}
@@ -53,7 +56,7 @@ export class SocketEventHandler {
 	 */
 	private configureRoomEvents(socket: Socket): void {
 		socket.on("getRoomInfo", async ({ roomId }, callback) => {
-			const roomInfo = await getRoomInfo(this.prisma, roomId);
+			const roomInfo = await this.roomReposiotry.getRoomInfo(roomId);
 			callback(roomInfo);
 		});
 
@@ -122,16 +125,39 @@ export class SocketEventHandler {
 			}
 		});
 
+		socket.on("poopAction", async (data) => {
+			try {
+				const updateGameState: GameState =
+					await this.gameController.handlePoopAction(
+						data.roomId,
+						data.playerId
+					);
+				// イベントリスナーに結果を返す
+				this.io
+					.to(data.roomId)
+					.emit("gameStateUpdate", updateGameState);
+			} catch (error) {
+				console.error("Error in poopAction:", error);
+				socket.emit("gameError", {
+					message: "Failed to process poop action",
+				});
+			}
+		});
+
 		// 同様に rollDice イベントハンドラも修正する必要があります
-		socket.on("rollDice", async ({ roomId, playerId }) => {
+		socket.on("rollDice", async (data) => {
 			try {
 				const updatedGameState =
-					await this.gameController.handleDiceRoll(roomId, playerId);
+					await this.gameController.handleDiceRoll(
+						data.roomId,
+						data.playerId
+					);
+
 				this.emitGameState(updatedGameState, socket.id);
 			} catch (error) {
 				console.error("Error in rollDice:", error);
 				socket.emit("gameError", {
-					message: "Failed to process dice roll",
+					message: "ダイスロールの処理に失敗しました",
 				});
 			}
 		});
@@ -174,7 +200,7 @@ export class SocketEventHandler {
 			await this.testGameController.handleTestRollDice(data, response);
 		});
 
-		socket.on("poopAction", async (data, response) => {
+		socket.on("testPoopAction", async (data, response) => {
 			await this.testGameController.handlePoopAction(data, response);
 		});
 

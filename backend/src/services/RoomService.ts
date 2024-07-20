@@ -1,12 +1,7 @@
 import { Socket } from "socket.io";
 import { Prisma, PrismaClient, Room } from "@prisma/client";
 import { GameState, Player, User } from "../types/types";
-import {
-	getRoomFromDatabase,
-	saveRoomToDatabase,
-	removeRoomFromDatabase,
-	getRoomList,
-} from "../repository/RoomRepository";
+import { RoomRepository } from "../repository/RoomRepository";
 import { io } from "../server";
 /**
  * ルームに関するサービスクラス
@@ -19,7 +14,10 @@ import { io } from "../server";
  * @method generateRoomId	ルームIDを生成する
  */
 export class RoomService {
-	constructor(private prisma: PrismaClient) {}
+	constructor(
+		private prisma: PrismaClient,
+		private repo: RoomRepository = new RoomRepository(prisma)
+	) {}
 
 	/**
 	 * ルームを作成する
@@ -55,7 +53,7 @@ export class RoomService {
 			version: 1,
 		};
 
-		await saveRoomToDatabase(this.prisma, newRoom);
+		await this.repo.saveRoomToDatabase(newRoom);
 		socket.join(roomId);
 
 		io.to(roomId).emit("playerJoined", newPlayer);
@@ -63,7 +61,7 @@ export class RoomService {
 			id: roomId,
 			players: newRoom.players,
 		});
-		io.emit("roomList", await getRoomList(this.prisma));
+		io.emit("roomList", await this.repo.getRoomList());
 
 		return { roomId };
 	}
@@ -85,10 +83,7 @@ export class RoomService {
 		playerName: string,
 		playerId: string
 	): Promise<boolean> {
-		const room: Room | null = await getRoomFromDatabase(
-			this.prisma,
-			roomId
-		);
+		const room: Room | null = await this.repo.getRoomFromDatabase(roomId);
 		if (!room || !room.players) return false;
 
 		if (room.password && room.password !== password) {
@@ -108,7 +103,7 @@ export class RoomService {
 
 		(room.players as User[]).push(newPlayer);
 
-		await saveRoomToDatabase(this.prisma, room as Room);
+		await this.repo.saveRoomToDatabase(room as Room);
 
 		socket.join(roomId);
 
@@ -116,7 +111,7 @@ export class RoomService {
 		io.to(roomId).emit("playerJoined", newPlayer);
 		io.to(roomId).emit("roomUpdate", room.players);
 		io.emit("roomPlayerCountUpdate", { id: roomId, players: room.players });
-		io.emit("roomList", await getRoomList(this.prisma));
+		io.emit("roomList", await this.repo.getRoomList());
 
 		return true;
 	}
@@ -128,16 +123,13 @@ export class RoomService {
 	 * @returns
 	 */
 	async handlePlayerLeave(playerId: string, roomId: string): Promise<void> {
-		const room: Room | null = await getRoomFromDatabase(
-			this.prisma,
-			roomId
-		);
+		const room: Room | null = await this.repo.getRoomFromDatabase(roomId);
 		if (!room || !room.players) return;
 
 		const players = room.players as Player[];
 
 		if (players.length === 1) {
-			await removeRoomFromDatabase(this.prisma, roomId);
+			await this.repo.removeRoomFromDatabase(roomId);
 		} else {
 			// playerIdのプレイヤーが、ownerである場合、次のプレイヤーをownerにする
 			if (room.ownerId === playerId) {
@@ -153,13 +145,13 @@ export class RoomService {
 				players.splice(playerIndex, 1);
 			}
 
-			await saveRoomToDatabase(this.prisma, room);
+			await this.repo.saveRoomToDatabase(room);
 		}
 
 		io.to(roomId).emit("playerLeft", playerId);
 		io.to(roomId).emit("roomUpdate", room.players);
 		io.emit("roomPlayerCountUpdate", { id: roomId, players: room.players });
-		io.emit("roomList", await getRoomList(this.prisma));
+		io.emit("roomList", await this.repo.getRoomList());
 	}
 
 	/**
@@ -169,11 +161,11 @@ export class RoomService {
 	 */
 	async resetTestRoom(roomId: string): Promise<boolean> {
 		try {
-			const room = await getRoomFromDatabase(this.prisma, roomId);
+			const room = await this.repo.getRoomFromDatabase(roomId);
 			if (!room) return false;
 
 			room.gameState = null;
-			await saveRoomToDatabase(this.prisma, room);
+			await this.repo.saveRoomToDatabase(room);
 
 			io.to(roomId).emit("roomReset");
 			return true;
@@ -218,18 +210,20 @@ export class RoomService {
 		roomId: string,
 		gameState: GameState
 	): Promise<GameState> {
-		const room: Room | null = await getRoomFromDatabase(
-			this.prisma,
-			roomId
-		);
+		const room: Room | null = await this.repo.getRoomFromDatabase(roomId);
 		if (!room) {
 			throw new Error("Room not found");
 		}
 		room.gameState = gameState as unknown as Prisma.JsonValue;
 
 		// updateになる
-		const updatedRoom = await saveRoomToDatabase(this.prisma, room, true);
+		const updatedRoom = await this.repo.saveRoomToDatabase(room, true);
 
 		return updatedRoom.gameState as unknown as GameState;
+	}
+
+	async isValidateRoom(roomId: string): Promise<boolean> {
+		const room: Room | null = await this.repo.getRoomFromDatabase(roomId);
+		return (room as Room) !== null;
 	}
 }

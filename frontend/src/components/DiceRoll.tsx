@@ -1,36 +1,15 @@
 import React, { useState } from "react";
-import { Socket } from "socket.io-client";
 
 interface DiceRollProps {
-	socket: Socket;
-	roomId: string;
-	playerId: string;
-	onRollComplete: () => void;
+	handleRollDice: (diceCount: number) => void;
+	rolling: boolean;
 }
 
-const DiceRoll: React.FC<DiceRollProps> = ({
-	socket,
-	roomId,
-	playerId,
-	onRollComplete,
-}) => {
+const DiceRoll: React.FC<DiceRollProps> = ({ handleRollDice, rolling }) => {
 	const [diceCount, setDiceCount] = useState<1 | 2>(1);
-	const [rolling, setRolling] = useState(false);
 
 	const handleRoll = () => {
-		setRolling(true);
-		socket.emit(
-			"rollDice",
-			{ roomId, playerId, diceCount },
-			(success: boolean) => {
-				if (success) {
-					onRollComplete();
-				} else {
-					console.error("Dice roll failed");
-				}
-				setRolling(false);
-			}
-		);
+		handleRollDice(diceCount);
 	};
 
 	return (
