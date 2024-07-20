@@ -1,8 +1,8 @@
 // src/App.tsx
 import React, { useState, useEffect } from "react";
 import { io, Socket } from "socket.io-client";
-import Lobby from "./components/Lobby";
-import Room from "./components/Room";
+import Lobby from "./components/MultiPlayer/Lobby";
+import Room from "./components/MultiPlayer/Room";
 
 const App: React.FC = () => {
 	const [socket, setSocket] = useState<Socket | null>(null);

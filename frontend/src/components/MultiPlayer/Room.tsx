@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Socket } from "socket.io-client";
-import GameBoard from "./GameBoard";
-import animalCardsMock from "./animalCardsMock";
-import type { Player, GameState, GameRoom } from "../types/types";
+import GameBoard from "../GameBoard";
+import animalCardsMock from "../AnimalShop/animalCardsMock";
+import type { Player, GameState, GameRoom } from "../../types/types";
 import { useSetRecoilState } from "recoil";
-import { gameStateAtom } from "../atoms/atoms";
-import { getOrCreatePlayerId } from "../utils/uuid";
+import { gameStateAtom } from "../../atoms/atoms";
+import { getOrCreatePlayerId } from "../../utils/uuid";
 
 interface RoomProps {
 	socket: Socket | null;

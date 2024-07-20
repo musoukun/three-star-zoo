@@ -1,7 +1,7 @@
 // src/components/OtherPlayer.tsx
 import React from "react";
-import { Cage, Player } from "../types/types";
-import { getAnimalImage } from "../utils/importAnimalImages";
+import { Cage, Player } from "../../types/types";
+import { getAnimalImage } from "../../utils/importAnimalImages";
 
 interface OtherPlayerProps {
 	player: Player;
