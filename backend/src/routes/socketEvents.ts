@@ -175,6 +175,23 @@ export class SocketEventHandler {
 				});
 			}
 		});
+
+		socket.on("processEffects", async (data) => {
+			try {
+				const updatedGameState =
+					await this.gameController.handleProcessEffects(
+						data.roomId,
+						data.playerId,
+						data.diceResult
+					);
+				this.emitGameState(true, updatedGameState, socket.id);
+			} catch (error) {
+				console.error("Error in processEffects:", error);
+				socket.emit("gameError", {
+					message: "Failed to process effects",
+				});
+			}
+		});
 	}
 
 	private configureTestGameEvents(socket: Socket): void {

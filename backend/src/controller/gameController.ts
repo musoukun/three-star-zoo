@@ -10,7 +10,7 @@ import {
 	ResultPoops,
 } from "../types/types";
 import { RoomRepository } from "../repository/RoomRepository";
-import { R, s } from "vite/dist/node/types.d-aGj9QkWt";
+import { EffectService } from "../services/EffectService";
 
 const prisma = new PrismaClient();
 
@@ -18,7 +18,8 @@ export class GameController {
 	constructor(
 		private gameService: GameService = new GameService(prisma),
 		private roomService: RoomService = new RoomService(prisma),
-		private roomRepo: RoomRepository = new RoomRepository(prisma)
+		private roomRepo: RoomRepository = new RoomRepository(prisma),
+		private effectService: EffectService = new EffectService(prisma)
 	) {}
 
 	async handleStartGame(
@@ -176,5 +177,25 @@ export class GameController {
 		updateGamaStateData.poopsResult = poopsResult;
 
 		return updateGamaStateData;
+	}
+
+	async handleProcessEffects(
+		roomId: string,
+		playerId: string,
+		diceResult: number
+	): Promise<GameState> {
+		const room = await this.gameService.isValidateGameState(roomId);
+		let gameState = room.gameState as unknown as GameState;
+
+		gameState = await this.effectService.processEffects(
+			gameState,
+			playerId,
+			diceResult
+		);
+
+		return await this.roomService.updateRoomWithGameState(
+			room.id,
+			gameState
+		);
 	}
 }
