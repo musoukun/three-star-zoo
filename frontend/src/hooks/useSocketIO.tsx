@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { Socket } from "socket.io-client";
-import { GameState, Animal } from "../types/types";
+import { GameState, Animal, Player, EmitGameState } from "../types/types";
+import { ActionState } from "../types/ActionState";
 
 export const useSocketIO = (
 	socket: Socket,
@@ -42,14 +43,43 @@ export const useSocketIO = (
 			socket.emit("poopAction", { roomId, playerId });
 		} catch (e) {
 			console.error(e);
+		} finally {
+			socket.off("poopAction");
 		}
 	}, [socket, roomId, playerId]);
 
+	/**
+	 *  ゲームの状態が更新されたときの処理
+	 */
+	const handleGameEvent = (updatedGameState: GameState) => {
+		const players = updatedGameState?.players as Player[];
+		const myplayerData: Player | undefined = players.find(
+			(player) => player.id === playerId
+		);
+
+		if (
+			updatedGameState.phase === "main" &&
+			myplayerData?.action === ActionState.POOP &&
+			myplayerData?.current
+		) {
+			console.log("caluculating poop result");
+			// ここでPOOPの結果を計算するイベントを発火
+			emitPoopAction();
+		}
+	};
+
 	const listenForGameStateUpdate = useCallback(
 		(callback: (newGameState: GameState) => void) => {
-			socket.on("gameStateUpdate", callback);
+			const handleGameStateUpdate = (emitGameState: EmitGameState) => {
+				console.log("Received updatedGameState", emitGameState);
+				callback(emitGameState.emitGameState);
+				handleGameEvent(emitGameState.emitGameState);
+			};
+
+			socket.on("gameStateUpdate", handleGameStateUpdate);
+
 			return () => {
-				socket.off("gameStateUpdate", callback);
+				socket.off("gameStateUpdate", handleGameStateUpdate);
 			};
 		},
 		[socket]

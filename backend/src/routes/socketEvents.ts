@@ -44,8 +44,15 @@ export class SocketEventHandler {
 		});
 	}
 
-	private emitGameState(gameState: GameState, socketId: string): void {
-		this.io.to(socketId).emit("gameStateUpdate", gameState);
+	private emitGameState(
+		success: boolean,
+		gameState: GameState,
+		socketId: string
+	): void {
+		this.io
+			.to(socketId)
+			// イベントリスナーに結果を返す
+			.emit("gameStateUpdate", { success, emitGameState: gameState });
 	}
 
 	/**
@@ -98,12 +105,21 @@ export class SocketEventHandler {
 	 */
 	private configureGameEvents(socket: Socket): void {
 		socket.on("startGame", async (data, response) => {
-			await this.gameController.handleStartGame(
-				data.roomId,
-				data.playerId,
-				data.players,
-				response
-			);
+			try {
+				const updatedGameState: GameState =
+					await this.gameController.handleStartGame(
+						data.roomId,
+						data.playerId,
+						data.players,
+						response // このコールバック関数だけでは、開始ボタンを押した人にしか結果を返さない。
+						// そのほかのプレイヤーには通知されない
+					);
+				// 全プレイヤーにゲーム開始を通知;
+				this.io.to(data.roomId).emit("gameStarted", updatedGameState);
+			} catch (error) {
+				console.error("Error in startGame:", error);
+				response(false, null);
+			}
 		});
 
 		socket.on("cageClick", async (data) => {
@@ -116,7 +132,7 @@ export class SocketEventHandler {
 						data.animal as Animal
 					);
 				// イベントリスナーに結果を返す
-				this.emitGameState(updatedGameState, socket.id);
+				this.emitGameState(true, updatedGameState, socket.id);
 			} catch (error) {
 				console.error("Error in cageClick:", error);
 				socket.emit("gameError", {
@@ -133,9 +149,7 @@ export class SocketEventHandler {
 						data.playerId
 					);
 				// イベントリスナーに結果を返す
-				this.io
-					.to(data.roomId)
-					.emit("gameStateUpdate", updateGameState);
+				this.emitGameState(true, updateGameState, socket.id);
 			} catch (error) {
 				console.error("Error in poopAction:", error);
 				socket.emit("gameError", {
@@ -153,7 +167,7 @@ export class SocketEventHandler {
 						data.playerId
 					);
 
-				this.emitGameState(updatedGameState, socket.id);
+				this.emitGameState(true, updatedGameState, socket.id);
 			} catch (error) {
 				console.error("Error in rollDice:", error);
 				socket.emit("gameError", {

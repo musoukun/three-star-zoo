@@ -27,18 +27,14 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		gameState,
 		updateGameState,
 		playerId,
-		myPlayer,
-		getCurrentPlayer,
+		currentPlayer,
 		setRolling,
+		otherPlayers,
 	} = useGameState();
 
 	// ソケット通信に関する関数を取得
-	const {
-		emitCageClick,
-		emitRollDice,
-		emitPoopAction,
-		listenForGameStateUpdate,
-	} = useSocketIO(socket, roomId, playerId);
+	const { emitCageClick, emitRollDice, listenForGameStateUpdate } =
+		useSocketIO(socket, roomId, playerId);
 
 	// ローカルの状態管理
 	const [showPoopResults, setShowPoopResults] = useState(false);
@@ -50,22 +46,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	useEffect(() => {
 		// ゲーム状態の更新をリッスンし、更新があればupdateGameStateを呼び出す
 		const unsubscribe = listenForGameStateUpdate(updateGameState);
-		return unsubscribe; // コンポーネントのアンマウント時にリスナーを解除
-	}, [listenForGameStateUpdate, updateGameState]);
-
-	// うんち計算結果を状態に反映するEffect
-	useEffect(() => {
-		if (gameState.poopsResult) {
-			setPoopResults(gameState.poopsResult);
-		}
-	}, [gameState.poopsResult]);
-
-	// うんち計算結果の表示を制御するEffect
-	useEffect(() => {
-		if (poopResults.length > 0) {
-			setShowPoopResults(true);
-		}
-	}, [poopResults]);
+		return unsubscribe; // コンポーネントのアンマウント時にリスナーを解除（socket.offをreturnしてる）
+	}, [listenForGameStateUpdate]);
 
 	// サイコロを振る処理
 	const handleRollDice = useCallback(
@@ -83,27 +65,10 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		[emitRollDice, setRolling]
 	);
 
-	// うんちアクションを自動で実行するEffect
-	useEffect(() => {
-		if (
-			gameState.phase === "main" &&
-			myPlayer?.action === "poop" &&
-			myPlayer.current
-		) {
-			emitPoopAction(); // うんちアクションをサーバーに送信
-		}
-	}, [gameState.phase, myPlayer, emitPoopAction]);
-
 	// ゲーム状態がロードされていない場合のローディング表示
 	if (!gameState || !gameState.players) {
 		return <div>Loading...</div>;
 	}
-
-	// 現在のプレイヤーと他のプレイヤーを取得
-	const currentPlayer = getCurrentPlayer(gameState.players);
-	const otherPlayers = gameState.players.filter(
-		(player) => player.id !== playerId
-	);
 
 	return (
 		<div className="flex h-screen bg-[#f0e6d2] font-crimson-text">

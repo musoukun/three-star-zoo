@@ -26,7 +26,7 @@ export class GameController {
 		playerId: string,
 		players: Player[],
 		response: (success: boolean, gameState: GameState | null) => void
-	): Promise<void> {
+	): Promise<GameState> {
 		const room = await this.roomService.getRoomById(roomId);
 		if (!room) {
 			throw new Error("Room not found");
@@ -45,7 +45,11 @@ export class GameController {
 				initialGameState
 			);
 
+		// ownerにゲーム開始の通知を送る
 		response(true, updatedGameState as unknown as GameState);
+
+		// owner以外のプレイヤーにゲーム開始の通知を送る
+		return updatedGameState;
 	}
 
 	async handleCageClick(
