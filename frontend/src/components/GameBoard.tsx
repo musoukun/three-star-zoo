@@ -10,6 +10,12 @@ import GameInfo from "./GameInfo";
 import ResultDisplay from "./ResultDisplay";
 import AnimalCardsSection from "./AnimalShop/AnimalCardSection";
 import DiceRollAnimation from "./DiceRollAnimation";
+import { useRecoilState, useRecoilValue } from "recoil";
+import {
+	diceResultAtom,
+	poopResultsAtom,
+	showPoopResultsAtom,
+} from "../atoms/atoms";
 
 interface GameBoardProps {
 	socket: Socket;
@@ -37,10 +43,15 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		useSocketIO(socket, roomId, playerId);
 
 	// ローカルの状態管理
-	const [showPoopResults, setShowPoopResults] = useState(false);
-	const [poopResults, setPoopResults] = useState<ResultPoops[]>([]);
-	const [diceResult, setDiceResult] = useState<number>(0);
-	const [showDiceResult, setShowDiceResult] = useState<boolean>(false);
+	const [showPoopResults, setShowPoopResults] =
+		useRecoilState<boolean>(showPoopResultsAtom);
+	const [poopResults, setPoopResults] = useRecoilState<ResultPoops[] | null>(
+		poopResultsAtom
+	);
+	const [diceResult, setDiceResult] = useRecoilState<number | null>(
+		diceResultAtom
+	);
+	const showDiceResult = useRecoilValue<boolean>(showPoopResultsAtom);
 
 	// ゲーム状態の更新をリッスンするEffect
 	useEffect(() => {
@@ -49,8 +60,14 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		return unsubscribe; // コンポーネントのアンマウント時にリスナーを解除（socket.offをreturnしてる）
 	}, [listenForGameStateUpdate]);
 
+	const handleClosePoopResults = () => {
+		setShowPoopResults(false);
+		setPoopResults(null);
+	};
+
 	// サイコロを振る処理
 	const handleRollDice = useCallback(
+		// diceCount: サイコロの数
 		(diceCount: number) => {
 			setRolling(true); // サイコロを振っている状態をセット
 			emitRollDice(diceCount, (success: boolean) => {
@@ -83,6 +100,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
 							currentPlayerId={gameState?.currentPlayer?.id}
 						/>
 					</div>
+					{showDiceResult && diceResult !== null && (
+						<DiceRollAnimation result={diceResult} />
+					)}
 					<div className="w-2/5 bg-gray-100 overflow-hidden">
 						<AnimalCardsSection animalCards={animalCards} />
 					</div>
@@ -97,12 +117,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
 			<div className="w-1/6 p-2 bg-[#e8f1d3] overflow-y-auto">
 				<GameInfo currentPlayer={currentPlayer} gameState={gameState} />
 			</div>
-			{showDiceResult && <DiceRollAnimation result={diceResult} />}
-			{showPoopResults && (
+
+			{showPoopResults && poopResults && (
 				<ResultDisplay
 					results={poopResults}
-					duration={5000}
-					onClose={() => setShowPoopResults(false)}
+					duration={1000}
+					onClose={handleClosePoopResults}
 				/>
 			)}
 		</div>

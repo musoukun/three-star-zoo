@@ -159,15 +159,17 @@ export class SocketEventHandler {
 		});
 
 		// 同様に rollDice イベントハンドラも修正する必要があります
-		socket.on("rollDice", async (data) => {
+		socket.on("rollDice", async (data, callback) => {
 			try {
-				const updatedGameState =
+				const updateGameState =
 					await this.gameController.handleDiceRoll(
 						data.roomId,
-						data.playerId
+						data.playerId,
+						data.diceCount
 					);
 
-				this.emitGameState(true, updatedGameState, socket.id);
+				callback(true); // ダイスロールの処理が成功したことをクライアントに通知
+				this.emitGameState(true, updateGameState, socket.id);
 			} catch (error) {
 				console.error("Error in rollDice:", error);
 				socket.emit("gameError", {

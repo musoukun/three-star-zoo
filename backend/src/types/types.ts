@@ -39,6 +39,7 @@ export type GameState = {
 	roundNumber: number;
 	version: number;
 	poopsResult?: ResultPoops[];
+	diceResult?: number;
 	isTestMode?: boolean;
 };
 

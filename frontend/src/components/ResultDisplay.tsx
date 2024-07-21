@@ -17,13 +17,10 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
 	const [isVisible, setIsVisible] = useState(true);
 
 	useEffect(() => {
-		if (duration) {
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-				onClose();
-			}, duration);
-			return () => clearTimeout(timer);
-		}
+		const timer = setTimeout(() => {
+			onClose();
+		}, duration);
+		return () => clearTimeout(timer);
 	}, [duration, onClose]);
 
 	const handleClick = () => {
@@ -33,7 +30,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
 		}
 	};
 
-	const totalPoop = results.reduce((sum, item) => sum + item.subtotal, 0);
+	const totalPoop = results?.reduce((sum, item) => sum + item.subtotal, 0);
 
 	// 	initial：アニメーションの初期状態を定義します。
 	// 	ここでは、要素の不透明度を0（完全に透明）にし、スケールを0.8（元のサイズの80%）に設定しています。

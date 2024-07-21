@@ -1,13 +1,35 @@
 import { useCallback } from "react";
 import { Socket } from "socket.io-client";
-import { GameState, Animal, Player, EmitGameState } from "../types/types";
+import {
+	GameState,
+	Animal,
+	Player,
+	EmitGameState,
+	ResultPoops,
+} from "../types/types";
 import { ActionState } from "../types/ActionState";
+import {
+	diceResultAtom,
+	poopResultsAtom,
+	showPoopResultsAtom,
+} from "../atoms/atoms";
+import { useSetRecoilState } from "recoil";
 
 export const useSocketIO = (
 	socket: Socket,
 	roomId: string,
 	playerId: string
 ) => {
+	const setShowPoopResults = useSetRecoilState<boolean>(showPoopResultsAtom);
+	const setShowDiceResult = useSetRecoilState<boolean>(showPoopResultsAtom);
+	const setPoopResults = useSetRecoilState<ResultPoops[] | null>(
+		poopResultsAtom
+	);
+	const setDiceResult = useSetRecoilState<number | null>(diceResultAtom);
+
+	/**
+	 * ケージをクリックしたときの処理
+	 */
 	const emitCageClick = useCallback(
 		(cageNumber: string, animal: Animal) => {
 			try {
@@ -30,13 +52,29 @@ export const useSocketIO = (
 		[socket, roomId, playerId]
 	);
 
+	/**
+	 * サイコロを振る
+	 */
 	const emitRollDice = useCallback(
 		(diceCount: number, callback: (success: boolean) => void) => {
-			socket.emit("rollDice", { roomId, playerId, diceCount }, callback);
+			try {
+				socket.emit(
+					"rollDice",
+					{ roomId, playerId, diceCount },
+					callback
+				);
+			} catch (e) {
+				console.error(e);
+			} finally {
+				socket.off("rollDice");
+			}
 		},
 		[socket, roomId, playerId]
 	);
 
+	/**
+	 * うんちアクションを実行
+	 */
 	const emitPoopAction = useCallback(() => {
 		try {
 			console.log("Emitting poop action");
@@ -47,26 +85,6 @@ export const useSocketIO = (
 			socket.off("poopAction");
 		}
 	}, [socket, roomId, playerId]);
-
-	/**
-	 *  ゲームの状態が更新されたときの処理
-	 */
-	const handleGameEvent = (updatedGameState: GameState) => {
-		const players = updatedGameState?.players as Player[];
-		const myplayerData: Player | undefined = players.find(
-			(player) => player.id === playerId
-		);
-
-		if (
-			updatedGameState.phase === "main" &&
-			myplayerData?.action === ActionState.POOP &&
-			myplayerData?.current
-		) {
-			console.log("caluculating poop result");
-			// ここでPOOPの結果を計算するイベントを発火
-			emitPoopAction();
-		}
-	};
 
 	/**
 	 *  他プレイヤーからコイン/スターを盗む
@@ -85,11 +103,56 @@ export const useSocketIO = (
 		[socket, roomId, playerId]
 	);
 
+	/**
+	 *  ゲームの状態が更新されたときの処理
+	 */
+	const handleGameEvent = (updatedGameState: GameState) => {
+		const players = updatedGameState?.players as Player[];
+		const myplayerData: Player | undefined = players.find(
+			(player) => player.id === playerId
+		);
+		const currentPlayer = players.find((player) => player.current);
+
+		// Poopアクションの結果を計算
+		if (
+			updatedGameState.phase === "main" &&
+			myplayerData?.action === ActionState.POOP &&
+			myplayerData?.current
+		) {
+			console.log("caluculating poop result");
+			// ここでPOOPの結果を計算するイベントを発火
+			emitPoopAction();
+		}
+
+		// Poopアクションの結果を受け取ったらshowPoopResultsを実行
+		if (
+			updatedGameState.phase === "main" &&
+			currentPlayer?.action === ActionState.ROLL
+		) {
+			console.log("show poop result");
+			// ここでPOOPの結果を計算するイベントを発火
+			setPoopResults(updatedGameState.poopsResult as ResultPoops[]);
+			setShowPoopResults(true);
+		}
+
+		// サイコロの結果を受け取ったら
+		if (
+			updatedGameState.phase === "main" &&
+			currentPlayer?.action === ActionState.INCOME
+		) {
+			console.log("show dice result");
+			// ここでPOOPの結果を計算するイベントを発火
+			setDiceResult(updatedGameState.diceResult as number);
+			setShowDiceResult(true);
+		}
+	};
+
 	const listenForGameStateUpdate = useCallback(
 		(callback: (newGameState: GameState) => void) => {
 			const handleGameStateUpdate = (emitGameState: EmitGameState) => {
 				console.log("Received updatedGameState", emitGameState);
 				callback(emitGameState.emitGameState);
+				// ゲームの状態が更新されたときの処理
 				handleGameEvent(emitGameState.emitGameState);
 			};
 

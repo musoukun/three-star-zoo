@@ -101,26 +101,6 @@ export class GameController {
 		);
 	}
 
-	async handleDiceRoll(roomId: string, playerId: string): Promise<GameState> {
-		// ゲームデータとルームデータをチェック
-		const room = await this.gameService.isValidateGameState(roomId);
-
-		let updatedGameState = this.gameService.rollDice(
-			room.gameState as unknown as GameState,
-			playerId
-		);
-		updatedGameState = this.gameService.updatePlayerAction(
-			updatedGameState,
-			playerId,
-			"trade"
-		);
-
-		return await this.roomService.updateRoomWithGameState(
-			room.id,
-			updatedGameState
-		);
-	}
-
 	/**
 	 * プレイヤーのpoopアクションを処理します。
 	 * @param roomId
@@ -164,7 +144,7 @@ export class GameController {
 		const updateAction = this.gameService.updatePlayerAction(
 			updatePoops,
 			playerId,
-			"roll"
+			ActionState.ROLL
 		);
 
 		// ゲームの状態を更新
@@ -179,6 +159,57 @@ export class GameController {
 		return updateGamaStateData;
 	}
 
+	/**
+	 * プレイヤーのサイコロを振るアクションを処理します。
+	 * @param roomId
+	 * @param playerId
+	 * @param diceCount
+	 * @returns
+	 */
+	async handleDiceRoll(
+		roomId: string,
+		playerId: string,
+		diceCount: number
+	): Promise<GameState> {
+		// ゲームデータとルームデータをチェック
+		const room = await this.gameService.isValidateGameState(roomId);
+
+		const updatedGameStateAndDiceResult = this.gameService.rollDice(
+			room.gameState as unknown as GameState,
+			playerId,
+			diceCount
+		);
+
+		let updatedGameState: GameState =
+			updatedGameStateAndDiceResult.updatedGameState;
+
+		const diceResult = updatedGameStateAndDiceResult.diceResult as number;
+
+		updatedGameState = this.gameService.updatePlayerAction(
+			updatedGameState,
+			playerId,
+			ActionState.INCOME
+		);
+
+		// ゲームの状態を更新
+		const updateGamaStateData: GameState =
+			await this.roomService.updateRoomWithGameState(
+				room.id,
+				updatedGameState
+			);
+
+		updateGamaStateData.diceResult = diceResult;
+
+		return updateGamaStateData;
+	}
+
+	/**
+	 * 動物の効果処理を行います。
+	 * @param roomId
+	 * @param playerId
+	 * @param diceResult
+	 * @returns
+	 */
 	async handleProcessEffects(
 		roomId: string,
 		playerId: string,

@@ -62,8 +62,9 @@ export type GameState = {
 	currentPlayer?: Player;
 	phase: "waiting" | "init" | "main" | "end";
 	roundNumber: number;
+	version: number;
 	poopsResult?: ResultPoops[];
-	version?: number;
+	diceResult?: number;
 	isTestMode?: boolean;
 };
 
