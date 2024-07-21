@@ -34,6 +34,10 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 				{ roomId },
 				(roomInfo: GameRoom | null) => {
 					if (roomInfo) {
+						console.log("Received room info:", roomInfo);
+						console.log("Players:", roomInfo.players);
+						console.log("Owner ID:", roomInfo.ownerId);
+
 						setPlayers(roomInfo.players);
 						setIsOwner(roomInfo.ownerId === playerId);
 						if (roomInfo.gameState) {
@@ -65,12 +69,6 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 			console.log("Owner updated, new owner ID:", ownerId);
 		};
 
-		const handleGameStarted = (initialGameState: GameState) => {
-			setGameState(initialGameState);
-			setGameStarted(true);
-			console.log("Received initial game state:", initialGameState);
-		};
-
 		const handlePlayerJoined = (newPlayer: Player) => {
 			setPlayers((prevPlayers) => [...prevPlayers, newPlayer]);
 			console.log("New player joined:", newPlayer);
@@ -83,6 +81,11 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 			console.log("Player left:", leftPlayerId);
 		};
 
+		const handleGameStarted = (initialGameState: GameState) => {
+			setGameState(initialGameState);
+			setGameStarted(true);
+		};
+		// socket on は、イベントを受信するためのメソッド
 		socket.on("roomUpdate", handleRoomUpdate);
 		socket.on("ownerUpdate", handleOwnerUpdate);
 		socket.on("gameStarted", handleGameStarted);
@@ -90,11 +93,11 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 		socket.on("playerLeft", handlePlayerLeft);
 
 		return () => {
-			socket.off("roomUpdate", handleRoomUpdate);
-			socket.off("ownerUpdate", handleOwnerUpdate);
-			socket.off("gameStarted", handleGameStarted);
-			socket.off("playerJoined", handlePlayerJoined);
-			socket.off("playerLeft", handlePlayerLeft);
+			socket.off("roomUpdate");
+			socket.off("ownerUpdate");
+			socket.off("gameStarted");
+			socket.off("playerJoined");
+			socket.off("playerLeft");
 		};
 	}, [socket, playerId, setGameState]);
 
@@ -129,20 +132,21 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 	const startGame = useCallback(() => {
 		if (socket && isOwner) {
 			console.log("Attempting to start game");
-			const startPlayerIndex = 0;
+
 			const updatedPlayers = players.map((player, index) => ({
 				...player,
-				startPlayer: index === startPlayerIndex,
+				startPlayer: index === 0,
 			}));
+
 			socket.emit(
 				"startGame",
 				{ roomId, playerId, players: updatedPlayers },
 				(success: boolean, updatedGameState: GameState) => {
 					if (success) {
-						setGameState(updatedGameState);
-						setGameStarted(true);
 						console.log("Game started successfully");
-						console.log("Initial game state:", updatedGameState);
+						console.log("Updated game state:", updatedGameState);
+						socket.off("startGame");
+						socket.off("gameStateUpdate");
 					} else {
 						console.error("Failed to start game");
 					}
@@ -153,8 +157,7 @@ const Room: React.FC<RoomProps> = ({ socket, roomId, onLeaveRoom }) => {
 				"Cannot start game: not owner or socket not connected"
 			);
 		}
-	}, [socket, isOwner, players, roomId, playerId, setGameState]);
-
+	}, [socket, isOwner, players, roomId, playerId]);
 	/**
 	 * ルームから退出する
 	 */

@@ -5,7 +5,7 @@ import AnimalButton from "./AnimalButton";
 import { ActionState } from "../../types/ActionState";
 import { useGameState } from "../../hooks/useGameState";
 
-interface LeftPanelProps {
+interface ActionPanelProps {
 	selectedAnimal: string | null;
 	handleCancel: () => void;
 	handleAnimalSelect: (animal: string) => void;
@@ -13,7 +13,7 @@ interface LeftPanelProps {
 	placedAnimals: { [key: string]: number };
 }
 
-const ActionPanel: React.FC<LeftPanelProps> = ({
+const ActionPanel: React.FC<ActionPanelProps> = ({
 	selectedAnimal,
 	handleCancel,
 	handleAnimalSelect,
@@ -95,4 +95,4 @@ const ActionPanel: React.FC<LeftPanelProps> = ({
 	);
 };
 
-export default ActionPanel;
+export default React.memo(ActionPanel);

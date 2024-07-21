@@ -67,6 +67,11 @@ export type GameState = {
 	isTestMode?: boolean;
 };
 
+export type EmitGameState = {
+	success: boolean;
+	emitGameState: GameState;
+};
+
 export type AnimalCard = {
 	id: number;
 	name: string;

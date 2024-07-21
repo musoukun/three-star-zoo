@@ -41,7 +41,7 @@ export class GameService {
 			phase: "init",
 			roundNumber: 1,
 			currentPlayer: players.find((player) => playerId === player.id),
-			version: 1,
+			version: 0, // room作成時が0
 		};
 	}
 

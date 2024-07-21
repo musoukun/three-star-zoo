@@ -2,7 +2,7 @@ import React from "react";
 import { Player, GameState } from "../types/types";
 
 interface GameInfoProps {
-	currentPlayer: Player | null;
+	currentPlayer: Player | null | undefined;
 	gameState: GameState;
 }
 
