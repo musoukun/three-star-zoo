@@ -25,7 +25,7 @@ export const useSocketIO = (
 	const setPoopResults = useSetRecoilState<ResultPoops[] | null>(
 		poopResultsAtom
 	);
-	const setDiceResult = useSetRecoilState<number | null>(diceResultAtom);
+	const setDiceResult = useSetRecoilState<number[] | null>(diceResultAtom);
 
 	/**
 	 * ケージをクリックしたときの処理
@@ -133,6 +133,8 @@ export const useSocketIO = (
 			// ここでPOOPの結果を計算するイベントを発火
 			setPoopResults(updatedGameState.poopsResult as ResultPoops[]);
 			setShowPoopResults(true);
+			// アニメーション開始時にサーバーに通知
+			socket.emit("clientReady", roomId, "poopAnimation");
 		}
 
 		// サイコロの結果を受け取ったら
@@ -142,9 +144,19 @@ export const useSocketIO = (
 		) {
 			console.log("show dice result");
 			// ここでPOOPの結果を計算するイベントを発火
-			setDiceResult(updatedGameState.diceResult as number);
+			setDiceResult(updatedGameState.diceResult as number[]);
 			setShowDiceResult(true);
+			// アニメーション開始時にサーバーに通知
+			socket.emit("clientReady", roomId, "diceAnimation");
 		}
+
+		return {
+			notifyAnimationComplete,
+		};
+	};
+
+	const notifyAnimationComplete = (actionType: string) => {
+		socket.emit("clientReady", roomId, actionType);
 	};
 
 	const listenForGameStateUpdate = useCallback(
@@ -170,5 +182,6 @@ export const useSocketIO = (
 		emitRollDice,
 		emitPoopAction,
 		listenForGameStateUpdate,
+		notifyAnimationComplete,
 	};
 };

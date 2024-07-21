@@ -326,23 +326,24 @@ export class GameService {
 		gameState: GameState,
 		playerId: string,
 		diceCount: number
-	): { updatedGameState: GameState; diceResult: number } {
-		// diceCount の数だけサイコロを振る。結果は合計して返す。
-		const diceResult: number = Array.from({ length: diceCount }).reduce(
-			(total: number) =>
-				(total as number) + Math.floor(Math.random() * 6) + 1,
-			0
+	): { updatedGameState: GameState; diceResult: number[] } {
+		// diceCount の数だけサイコロを振る。結果は配列でサイコロごとの目を格納する
+		const diceResult: number[] = Array.from(
+			{ length: diceCount },
+			() => Math.floor(Math.random() * 6) + 1
 		);
+
 		const updatedPlayers: Player[] = gameState.players.map((player) =>
 			player.id === playerId ? { ...player, diceResult } : player
 		);
+
 		// gameStateのplayersを更新して返す
 		return {
 			updatedGameState: {
 				...gameState,
 				players: updatedPlayers,
 			} as GameState,
-			diceResult: diceResult as number,
+			diceResult: diceResult as number[],
 		};
 	}
 }

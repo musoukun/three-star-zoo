@@ -39,8 +39,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	} = useGameState();
 
 	// ソケット通信に関する関数を取得
-	const { emitCageClick, emitRollDice, listenForGameStateUpdate } =
-		useSocketIO(socket, roomId, playerId);
+	const {
+		emitCageClick,
+		emitRollDice,
+		listenForGameStateUpdate,
+		notifyAnimationComplete,
+	} = useSocketIO(socket, roomId, playerId);
 
 	// ローカルの状態管理
 	const [showPoopResults, setShowPoopResults] =
@@ -48,7 +52,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	const [poopResults, setPoopResults] = useRecoilState<ResultPoops[] | null>(
 		poopResultsAtom
 	);
-	const [diceResult, setDiceResult] = useRecoilState<number | null>(
+	const [diceResult, setDiceResult] = useRecoilState<number[] | null>(
 		diceResultAtom
 	);
 	const showDiceResult = useRecoilValue<boolean>(showPoopResultsAtom);
@@ -59,11 +63,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		const unsubscribe = listenForGameStateUpdate(updateGameState);
 		return unsubscribe; // コンポーネントのアンマウント時にリスナーを解除（socket.offをreturnしてる）
 	}, [listenForGameStateUpdate]);
-
-	const handleClosePoopResults = () => {
-		setShowPoopResults(false);
-		setPoopResults(null);
-	};
 
 	// サイコロを振る処理
 	const handleRollDice = useCallback(
@@ -81,6 +80,18 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		},
 		[emitRollDice, setRolling]
 	);
+
+	// クライアントごとのAnimationが完了したときの処理
+	const handleClosePoopResults = useCallback(() => {
+		setShowPoopResults(false);
+		setPoopResults(null);
+		notifyAnimationComplete("poopAnimation");
+	}, [setShowPoopResults, setPoopResults, notifyAnimationComplete]);
+
+	const handleDiceAnimationComplete = useCallback(() => {
+		setDiceResult(null);
+		notifyAnimationComplete("diceAnimation");
+	}, [setDiceResult, notifyAnimationComplete]);
 
 	// ゲーム状態がロードされていない場合のローディング表示
 	if (!gameState || !gameState.players) {
@@ -101,7 +112,10 @@ const GameBoard: React.FC<GameBoardProps> = ({
 						/>
 					</div>
 					{showDiceResult && diceResult !== null && (
-						<DiceRollAnimation result={diceResult} />
+						<DiceRollAnimation
+							result={diceResult}
+							onAnimationComplete={handleDiceAnimationComplete}
+						/>
 					)}
 					<div className="w-2/5 bg-gray-100 overflow-hidden">
 						<AnimalCardsSection animalCards={animalCards} />
@@ -123,6 +137,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
 					results={poopResults}
 					duration={1000}
 					onClose={handleClosePoopResults}
+					onAnimationComplete={() =>
+						notifyAnimationComplete("poopAnimation")
+					}
 				/>
 			)}
 		</div>

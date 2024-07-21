@@ -11,16 +11,32 @@ import {
 } from "../types/types";
 import { RoomRepository } from "../repository/RoomRepository";
 import { EffectService } from "../services/EffectService";
+import { LockStepManager } from "./LockStepManager";
+import { Server } from "socket.io";
 
 const prisma = new PrismaClient();
 
 export class GameController {
+	private lockStepManager: LockStepManager;
+
 	constructor(
 		private gameService: GameService = new GameService(prisma),
 		private roomService: RoomService = new RoomService(prisma),
-		private roomRepo: RoomRepository = new RoomRepository(prisma),
-		private effectService: EffectService = new EffectService(prisma)
-	) {}
+		private effectService: EffectService = new EffectService(prisma),
+		io: Server
+	) {
+		this.lockStepManager = new LockStepManager(io);
+		this.lockStepManager.setupLockStep();
+	}
+
+	async updateGameStateWithLockStep(
+		roomId: string,
+		gameState: GameState
+	): Promise<void> {
+		this.lockStepManager.setGameState(roomId, gameState);
+		// ゲーム状態の更新をクライアントに通知
+		await this.roomService.updateRoomWithGameState(roomId, gameState);
+	}
 
 	async handleStartGame(
 		roomId: string,
@@ -174,16 +190,16 @@ export class GameController {
 		// ゲームデータとルームデータをチェック
 		const room = await this.gameService.isValidateGameState(roomId);
 
-		const updatedGameStateAndDiceResult = this.gameService.rollDice(
+		const gameStateAndDiceResult = this.gameService.rollDice(
 			room.gameState as unknown as GameState,
 			playerId,
 			diceCount
 		);
 
 		let updatedGameState: GameState =
-			updatedGameStateAndDiceResult.updatedGameState;
+			gameStateAndDiceResult.updatedGameState;
 
-		const diceResult = updatedGameStateAndDiceResult.diceResult as number;
+		const diceResult = gameStateAndDiceResult.diceResult as number[];
 
 		updatedGameState = this.gameService.updatePlayerAction(
 			updatedGameState,

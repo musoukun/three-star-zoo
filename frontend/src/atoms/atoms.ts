@@ -81,7 +81,7 @@ export const poopResultsAtom = atom<ResultPoops[] | null>({
 	default: null,
 });
 
-export const diceResultAtom = atom<number | null>({
+export const diceResultAtom = atom<number[] | null>({
 	key: "diceResultAtom",
 	default: null,
 });

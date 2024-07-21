@@ -37,7 +37,7 @@ export type Player = {
 	turnOrder?: number;
 	poops?: number;
 	board?: Board;
-	diceResult?: number;
+	diceResult?: number[];
 	money?: number;
 	star?: number;
 	inventory?: Animal[];
@@ -64,7 +64,7 @@ export type GameState = {
 	roundNumber: number;
 	version: number;
 	poopsResult?: ResultPoops[];
-	diceResult?: number;
+	diceResult?: number[];
 	isTestMode?: boolean;
 };
 

@@ -24,7 +24,7 @@ export type Player = {
 	money: number; // moneyを必須に変更
 	star: number; // starを必須に変更
 	inventory: Animal[];
-	diceResult?: number;
+	diceResult?: number[];
 	owner: boolean;
 	startPlayer: boolean; // startPlayerを必須に変更
 	current: boolean; // currentを必須に変更
@@ -39,7 +39,7 @@ export type GameState = {
 	roundNumber: number;
 	version: number;
 	poopsResult?: ResultPoops[];
-	diceResult?: number;
+	diceResult?: number[]; // サイコロの結果を格納する配列
 	isTestMode?: boolean;
 };
 

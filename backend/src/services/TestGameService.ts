@@ -193,7 +193,7 @@ export class TestGameService {
 			(player) => player.current
 		);
 		if (currentPlayer) {
-			currentPlayer.diceResult = Math.floor(Math.random() * 6) + 1;
+			// currentPlayer.diceResult = Math.floor(Math.random() * 6) + 1;
 			currentPlayer.action = ActionState.TRADE;
 		}
 

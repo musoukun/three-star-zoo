@@ -7,21 +7,24 @@ interface ResultDisplayProps {
 	results: ResultPoops[];
 	duration?: number; // 表示時間（ミリ秒）
 	onClose: () => void;
+	onAnimationComplete: () => void;
 }
 
 const ResultDisplay: React.FC<ResultDisplayProps> = ({
 	results,
 	duration,
 	onClose,
+	onAnimationComplete,
 }) => {
 	const [isVisible, setIsVisible] = useState(true);
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
 			onClose();
+			onAnimationComplete();
 		}, duration);
 		return () => clearTimeout(timer);
-	}, [duration, onClose]);
+	}, [duration, onClose, onAnimationComplete]);
 
 	const handleClick = () => {
 		if (!duration) {

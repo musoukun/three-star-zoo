@@ -7,12 +7,14 @@ import { Player, GameState, Animal, ResultPoops } from "../types/types";
 import { TestGameController } from "../controller/TestGameController";
 import { GameController } from "../controller/GameController";
 import { RoomRepository } from "../repository/RoomRepository";
+import { EffectService } from "../services/EffectService";
 
 export class SocketEventHandler {
 	private io: Server;
 	private prisma: PrismaClient;
 	private gameService: GameService;
 	private roomService: RoomService;
+	private effectService: EffectService;
 	private testGameController: TestGameController;
 	private gameController: GameController;
 	private roomReposiotry: RoomRepository;
@@ -24,9 +26,12 @@ export class SocketEventHandler {
 		this.roomService = new RoomService(prisma);
 		this.testGameController = new TestGameController(prisma);
 		this.roomReposiotry = new RoomRepository(prisma);
+		this.effectService = new EffectService(prisma);
 		this.gameController = new GameController(
 			this.gameService,
-			this.roomService
+			this.roomService,
+			this.effectService,
+			this.io
 		);
 	}
 
