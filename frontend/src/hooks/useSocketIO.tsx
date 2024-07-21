@@ -68,6 +68,23 @@ export const useSocketIO = (
 		}
 	};
 
+	/**
+	 *  他プレイヤーからコイン/スターを盗む
+	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const emitExecuteSteal = useCallback(
+		(targetPlayerIds: string[], amount: number, type: "coin" | "star") => {
+			socket.emit("executeSteal", {
+				roomId,
+				playerId,
+				targetPlayerIds,
+				amount,
+				type,
+			});
+		},
+		[socket, roomId, playerId]
+	);
+
 	const listenForGameStateUpdate = useCallback(
 		(callback: (newGameState: GameState) => void) => {
 			const handleGameStateUpdate = (emitGameState: EmitGameState) => {
