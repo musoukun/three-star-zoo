@@ -188,7 +188,7 @@ export const useSocketIO = (
 		socket.on("diceAnimationComplete", ({ playerSynchronized }) => {
 			if (playerSynchronized) {
 				// ここで収入フェーズの処理を開始する
-				// 例: setShowIncomePanel(true);
+				setShowAction({ flg: true, message: "動物の効果発動" });
 			}
 		});
 

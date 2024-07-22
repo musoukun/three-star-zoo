@@ -2,9 +2,8 @@ import { Server, Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 import { GameService } from "../services/GameService";
 import { RoomService } from "../services/RoomService";
-import { TestGameService } from "../services/TestGameService";
 import { Player, GameState, Animal, ResultPoops } from "../types/types";
-import { TestGameController } from "../controller/TestGameController";
+
 import { GameController } from "../controller/GameController";
 import { RoomRepository } from "../repository/RoomRepository";
 import { EffectService } from "../services/EffectService";
@@ -16,7 +15,6 @@ export class SocketEventHandler {
 	private gameService: GameService;
 	private roomService: RoomService;
 	private effectService: EffectService;
-	private testGameController: TestGameController;
 	private gameController: GameController;
 	private roomReposiotry: RoomRepository;
 	private lockStepManager: LockStepManager;
@@ -26,7 +24,6 @@ export class SocketEventHandler {
 		this.prisma = prisma;
 		this.gameService = new GameService(prisma);
 		this.roomService = new RoomService(prisma);
-		this.testGameController = new TestGameController(prisma);
 		this.roomReposiotry = new RoomRepository(prisma);
 		this.effectService = new EffectService(prisma);
 		this.gameController = new GameController(
@@ -235,48 +232,24 @@ export class SocketEventHandler {
 	}
 
 	private configureTestGameEvents(socket: Socket): void {
-		socket.on("startTestGame", async (data, response) => {
-			await this.testGameController.handleStartTestGame(data, response);
-		});
+		socket.on("updateTestGameState", async (data, callback) => {
+			try {
+				const { roomId, gameState } = data;
+				const room = await this.roomService.getRoomById(roomId);
 
-		socket.on("resetTestGame", async (data, response) => {
-			await this.roomService.resetTestRoom(data.roomId);
-			response();
-		});
+				if (!room) {
+					throw new Error("Room not found");
+				}
 
-		socket.on("addTestPlayer", async (data, response) => {
-			await this.testGameController.handleAddTestPlayer(data, response);
-		});
+				room.gameState = gameState;
+				await this.roomReposiotry.saveRoomToDatabase(room);
 
-		socket.on("setCurrentPlayer", async (data, response) => {
-			await this.testGameController.handleSetCurrentPlayer(
-				data,
-				response
-			);
-		});
-
-		socket.on("addCoins", async (data, response) => {
-			await this.testGameController.handleAddCoins(data, response);
-		});
-
-		socket.on("placeAnimal", async (data, response) => {
-			await this.testGameController.handlePlaceAnimal(data, response);
-		});
-
-		socket.on("changePhase", async (data, response) => {
-			await this.testGameController.handleChangePhase(data, response);
-		});
-
-		socket.on("testRollDice", async (data, response) => {
-			await this.testGameController.handleTestRollDice(data, response);
-		});
-
-		socket.on("testPoopAction", async (data, response) => {
-			await this.testGameController.handlePoopAction(data, response);
-		});
-
-		socket.on("flushAction", async (data, response) => {
-			await this.testGameController.handleFlushAction(data, response);
+				this.emitGameState(true, gameState, socket.id, roomId);
+				callback(true);
+			} catch (error) {
+				console.error("Error in updateGameState:", error);
+				callback(false);
+			}
 		});
 	}
 }

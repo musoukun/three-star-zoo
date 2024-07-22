@@ -133,7 +133,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 							onAnimationComplete={() =>
 								console.log("Animation completed")
 							}
-							animationDuration={1.4} // x秒間のアニメーション
+							animationDuration={1.4} // z秒間のアニメーション
 							rollingSpeed={2} // 1秒あたりx回転
 						/>
 					)}
@@ -154,9 +154,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
 					</ErrorBoundary>
 				</div>
 			</div>
-			<div className="w-1/6 p-2 bg-[#e8f1d3] overflow-y-auto">
+			{/* <div className="w-1/6 p-2 bg-[#e8f1d3] overflow-y-auto">
 				<GameInfo currentPlayer={currentPlayer} gameState={gameState} />
-			</div>
+			</div> */}
 			{showPoopResults && poopResults && (
 				<ResultDisplay
 					results={poopResults}
