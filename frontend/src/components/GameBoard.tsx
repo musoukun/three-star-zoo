@@ -5,17 +5,22 @@ import { AnimalCard as AnimalCardType, ResultPoops } from "../types/types";
 import { useGameState } from "../hooks/useGameState";
 import { useSocketIO } from "../hooks/useSocketIO";
 import OtherPlayersSection from "./OtherPlayer/OtherPlayersSection";
-import PlayerAreaBoard from "./PlayArea/PlayerAreaBoard";
+
 import GameInfo from "./GameInfo";
 import ResultDisplay from "./ResultDisplay";
 import AnimalCardsSection from "./AnimalShop/AnimalCardSection";
 import DiceRollAnimation from "./DiceRollAnimation";
-import { useRecoilState, useRecoilValue } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import {
 	diceResultAtom,
 	poopResultsAtom,
+	showActionAtom,
+	showDicePanelAtom,
 	showPoopResultsAtom,
 } from "../atoms/atoms";
+import { ErrorBoundary } from "react-error-boundary";
+import BoardPanel from "./PlayArea/BoardPanel";
+import ActionPhaseNotifier from "./ActionPhaseNotifier";
 
 interface GameBoardProps {
 	socket: Socket;
@@ -31,6 +36,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	// Recoilから管理されているゲーム状態とその更新関数を取得
 	const {
 		gameState,
+		myPlayer,
+
 		updateGameState,
 		playerId,
 		currentPlayer,
@@ -56,6 +63,10 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		diceResultAtom
 	);
 	const showDiceResult = useRecoilValue<boolean>(showPoopResultsAtom);
+	const setShowDicePanel = useSetRecoilState<boolean>(showDicePanelAtom);
+	const showAction = useRecoilValue<{ flg: boolean; message: string }>(
+		showActionAtom
+	);
 
 	// ゲーム状態の更新をリッスンするEffect
 	useEffect(() => {
@@ -69,7 +80,10 @@ const GameBoard: React.FC<GameBoardProps> = ({
 		// diceCount: サイコロの数
 		(diceCount: number) => {
 			setRolling(true); // サイコロを振っている状態をセット
+			setShowDicePanel(false);
+
 			emitRollDice(diceCount, (success: boolean) => {
+				// ここのCallback使ってない
 				if (success) {
 					console.log("Dice roll successful");
 				} else {
@@ -117,21 +131,26 @@ const GameBoard: React.FC<GameBoardProps> = ({
 							onAnimationComplete={handleDiceAnimationComplete}
 						/>
 					)}
+
 					<div className="w-2/5 bg-gray-100 overflow-hidden">
 						<AnimalCardsSection animalCards={animalCards} />
 					</div>
 				</div>
+
 				<div className="bg-white shadow-lg">
-					<PlayerAreaBoard
-						handleCageClick={emitCageClick}
-						handleRollDice={handleRollDice}
-					/>
+					<ErrorBoundary fallback={<div>エラーが発生しました</div>}>
+						{myPlayer && (
+							<BoardPanel
+								onCageClick={emitCageClick}
+								handleRollDice={handleRollDice}
+							/>
+						)}
+					</ErrorBoundary>
 				</div>
 			</div>
 			<div className="w-1/6 p-2 bg-[#e8f1d3] overflow-y-auto">
 				<GameInfo currentPlayer={currentPlayer} gameState={gameState} />
 			</div>
-
 			{showPoopResults && poopResults && (
 				<ResultDisplay
 					results={poopResults}
@@ -139,6 +158,23 @@ const GameBoard: React.FC<GameBoardProps> = ({
 					onClose={handleClosePoopResults}
 					onAnimationComplete={() =>
 						notifyAnimationComplete("poopAnimation")
+					}
+				/>
+			)}
+			{showAction.flg && (
+				<ActionPhaseNotifier
+					text={showAction.message}
+					backgroundColor="rgba(128, 0, 128, 0.7)"
+					textColor="#FFD700"
+					isBold={true}
+					isItalic={false}
+					opacity={0.8}
+					speed={0.8}
+					fontSize="70px"
+					fontFamily="Roboto"
+					duration={2.4}
+					onAnimationComplete={() =>
+						notifyAnimationComplete("initAnimation")
 					}
 				/>
 			)}

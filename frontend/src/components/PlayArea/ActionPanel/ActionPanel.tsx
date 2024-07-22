@@ -1,9 +1,11 @@
 import React from "react";
-import { Animal } from "../../types/types";
-import DiceRoll from "../DiceRoll";
+import { Animal } from "../../../types/types";
+import DiceRoll from "./DiceRoll";
 import AnimalButton from "./AnimalButton";
-import { ActionState } from "../../types/ActionState";
-import { useGameState } from "../../hooks/useGameState";
+import { ActionState } from "../../../types/ActionState";
+import { useGameState } from "../../../hooks/useGameState";
+import { useRecoilValue } from "recoil";
+import { showDicePanelAtom } from "../../../atoms/atoms";
 
 interface ActionPanelProps {
 	selectedAnimal: string | null;
@@ -29,11 +31,20 @@ const ActionPanel: React.FC<ActionPanelProps> = ({
 		rolling,
 	} = useGameState();
 
+	const showDicePanel = useRecoilValue(showDicePanelAtom);
 	const action = myPlayerAction;
 	const diceResult = myPlayerDiceResult;
 	const inventory = myPlayerInventory;
 
-	console.log(" " + phase + " " + isCurrentTurn + " " + action);
+	console.log(
+		" phase " +
+			phase +
+			" isCurrentTurn " +
+			isCurrentTurn +
+			" action " +
+			action
+	);
+	console.log("showDicePanel " + showDicePanel);
 
 	return (
 		<div className="w-1/3">
@@ -63,7 +74,8 @@ const ActionPanel: React.FC<ActionPanelProps> = ({
 					)}
 				{phase === "main" &&
 					isCurrentTurn &&
-					action === ActionState.ROLL && (
+					action === ActionState.ROLL &&
+					showDicePanel && (
 						<div className="flex-grow flex flex-col justify-center">
 							<DiceRoll
 								handleRollDice={handleRollDice}
@@ -95,4 +107,4 @@ const ActionPanel: React.FC<ActionPanelProps> = ({
 	);
 };
 
-export default React.memo(ActionPanel);
+export default ActionPanel;

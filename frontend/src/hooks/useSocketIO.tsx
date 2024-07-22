@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Socket } from "socket.io-client";
 import {
 	GameState,
@@ -11,6 +11,8 @@ import { ActionState } from "../types/ActionState";
 import {
 	diceResultAtom,
 	poopResultsAtom,
+	showActionAtom,
+	showDicePanelAtom,
 	showPoopResultsAtom,
 } from "../atoms/atoms";
 import { useSetRecoilState } from "recoil";
@@ -26,6 +28,10 @@ export const useSocketIO = (
 		poopResultsAtom
 	);
 	const setDiceResult = useSetRecoilState<number[] | null>(diceResultAtom);
+	const setShowDicePanel = useSetRecoilState<boolean>(showDicePanelAtom);
+	const setShowAction = useSetRecoilState<{ flg: boolean; message: string }>(
+		showActionAtom
+	);
 
 	/**
 	 * ケージをクリックしたときの処理
@@ -120,8 +126,7 @@ export const useSocketIO = (
 			myplayerData?.current
 		) {
 			console.log("caluculating poop result");
-			// ここでPOOPの結果を計算するイベントを発火
-			emitPoopAction();
+			setShowAction({ flg: true, message: "うんち発生" });
 		}
 
 		// Poopアクションの結果を受け取ったらshowPoopResultsを実行
@@ -150,10 +155,48 @@ export const useSocketIO = (
 			socket.emit("clientReady", roomId, "diceAnimation");
 		}
 
-		return {
-			notifyAnimationComplete,
-		};
+		// サイコロの結果を受け取ったら
+		// if (
+		// 	updatedGameState.phase === "main" &&
+		// 	currentPlayer?.action === ActionState.INCOME
+		// ) {
+		// 	console.log("show dice result");
+		// 	// ここでPOOPの結果を計算するイベントを発火
+		// 	setDiceResult(updatedGameState.diceResult as number[]);
+		// 	setShowDiceResult(true);
+		// 	// アニメーション開始時にサーバーに通知
+		// 	socket.emit("clientReady", roomId, "diceAnimation");
+		// }
 	};
+
+	useEffect(() => {
+		socket.on("initAnimationComplete", ({ playerSynchronized }) => {
+			if (playerSynchronized) {
+				// ここでPOOPの結果を計算するイベントを発火
+				setShowAction({ flg: false, message: "" });
+				emitPoopAction();
+			}
+		});
+
+		socket.on("poopAnimationComplete", ({ playerSynchronized }) => {
+			if (playerSynchronized) {
+				setShowDicePanel(true);
+			}
+		});
+
+		socket.on("diceAnimationComplete", ({ playerSynchronized }) => {
+			if (playerSynchronized) {
+				// ここで収入フェーズの処理を開始する
+				// 例: setShowIncomePanel(true);
+			}
+		});
+
+		return () => {
+			socket.off("initAnimationComplete");
+			socket.off("poopAnimationComplete");
+			socket.off("diceAnimationComplete");
+		};
+	}, [socket]);
 
 	const notifyAnimationComplete = (actionType: string) => {
 		socket.emit("clientReady", roomId, actionType);

@@ -8,6 +8,7 @@ import { TestGameController } from "../controller/TestGameController";
 import { GameController } from "../controller/GameController";
 import { RoomRepository } from "../repository/RoomRepository";
 import { EffectService } from "../services/EffectService";
+import { LockStepManager } from "../controller/LockStepManager";
 
 export class SocketEventHandler {
 	private io: Server;
@@ -18,6 +19,7 @@ export class SocketEventHandler {
 	private testGameController: TestGameController;
 	private gameController: GameController;
 	private roomReposiotry: RoomRepository;
+	private lockStepManager: LockStepManager;
 
 	constructor(io: Server, prisma: PrismaClient) {
 		this.io = io;
@@ -30,9 +32,11 @@ export class SocketEventHandler {
 		this.gameController = new GameController(
 			this.gameService,
 			this.roomService,
-			this.effectService,
-			this.io
+			this.effectService
 		);
+
+		this.lockStepManager = new LockStepManager(io);
+		this.lockStepManager.setupLockStep();
 	}
 
 	public setupSocketConnections(): void {
@@ -52,14 +56,16 @@ export class SocketEventHandler {
 	private emitGameState(
 		success: boolean,
 		gameState: GameState,
-		socketId: string
+		socketId: string,
+		roomId: string
 	): void {
 		this.io
 			.to(socketId)
-			// イベントリスナーに結果を返す
 			.emit("gameStateUpdate", { success, emitGameState: gameState });
-	}
 
+		// LockStepManagerにGameStateを設定
+		this.lockStepManager.setGameState(roomId, gameState);
+	}
 	/**
 	 * ルーム関連のイベントを設定
 	 * @note この画面の処理はcallback関数で結果を返している。
@@ -111,16 +117,22 @@ export class SocketEventHandler {
 	private configureGameEvents(socket: Socket): void {
 		socket.on("startGame", async (data, response) => {
 			try {
-				const updatedGameState: GameState =
-					await this.gameController.handleStartGame(
-						data.roomId,
-						data.playerId,
-						data.players,
-						response // このコールバック関数だけでは、開始ボタンを押した人にしか結果を返さない。
-						// そのほかのプレイヤーには通知されない
-					);
+				const result: {
+					updatedGameState: GameState;
+					roomId: string;
+				} = await this.gameController.handleStartGame(
+					data.roomId,
+					data.playerId,
+					data.players,
+					response // このコールバック関数だけでは、開始ボタンを押した人にしか結果を返さない。
+					// そのほかのプレイヤーには通知されない
+				);
 				// 全プレイヤーにゲーム開始を通知;
-				this.io.to(data.roomId).emit("gameStarted", updatedGameState);
+				this.io
+					.to(data.roomId)
+					.emit("gameStarted", result.updatedGameState);
+
+				socket.join(result.roomId);
 			} catch (error) {
 				console.error("Error in startGame:", error);
 				response(false, null);
@@ -137,7 +149,12 @@ export class SocketEventHandler {
 						data.animal as Animal
 					);
 				// イベントリスナーに結果を返す
-				this.emitGameState(true, updatedGameState, socket.id);
+				this.emitGameState(
+					true,
+					updatedGameState,
+					socket.id,
+					data.roomId
+				);
 			} catch (error) {
 				console.error("Error in cageClick:", error);
 				socket.emit("gameError", {
@@ -154,7 +171,12 @@ export class SocketEventHandler {
 						data.playerId
 					);
 				// イベントリスナーに結果を返す
-				this.emitGameState(true, updateGameState, socket.id);
+				this.emitGameState(
+					true,
+					updateGameState,
+					socket.id,
+					data.roomId
+				);
 			} catch (error) {
 				console.error("Error in poopAction:", error);
 				socket.emit("gameError", {
@@ -174,7 +196,12 @@ export class SocketEventHandler {
 					);
 
 				callback(true); // ダイスロールの処理が成功したことをクライアントに通知
-				this.emitGameState(true, updateGameState, socket.id);
+				this.emitGameState(
+					true,
+					updateGameState,
+					socket.id,
+					data.roomId
+				);
 			} catch (error) {
 				console.error("Error in rollDice:", error);
 				socket.emit("gameError", {
@@ -183,6 +210,7 @@ export class SocketEventHandler {
 			}
 		});
 
+		// 効果処理開始イベントハンドラを追加
 		socket.on("processEffects", async (data) => {
 			try {
 				const updatedGameState =
@@ -191,7 +219,12 @@ export class SocketEventHandler {
 						data.playerId,
 						data.diceResult
 					);
-				this.emitGameState(true, updatedGameState, socket.id);
+				this.emitGameState(
+					true,
+					updatedGameState,
+					socket.id,
+					data.roomId
+				);
 			} catch (error) {
 				console.error("Error in processEffects:", error);
 				socket.emit("gameError", {

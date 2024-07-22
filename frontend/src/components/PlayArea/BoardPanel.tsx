@@ -4,7 +4,7 @@ import ActionProgressBar from "../ActionProgressBar";
 import CageArea from "./CageArea";
 import { ActionState } from "../../types/ActionState";
 import { useGameState } from "../../hooks/useGameState";
-import ActionPanel from "./ActionPanel";
+import ActionPanel from "./ActionPanel/ActionPanel";
 
 interface BoardPanelProps {
 	onCageClick: (cageNumber: string, animal: Animal) => void;

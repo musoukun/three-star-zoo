@@ -1,5 +1,5 @@
 import React from "react";
-import { Animal } from "../../types/types";
+import { Animal } from "../../../types/types";
 
 interface AnimalButtonProps {
 	animal: Animal;

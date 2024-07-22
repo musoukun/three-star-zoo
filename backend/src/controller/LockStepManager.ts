@@ -11,7 +11,7 @@ export class LockStepManager {
 	}
 
 	public setupLockStep(): void {
-		this.io.on("connection", (socket: Socket) => {
+		this.io.on("connection", (socket) => {
 			this.handleClientReady(socket);
 		});
 	}
@@ -39,41 +39,57 @@ export class LockStepManager {
 		if (!gameState) return;
 
 		switch (actionType) {
+			case "initAnimation":
+				this.handleInitAnimationComplete(roomId, gameState);
+				break;
 			case "poopAnimation":
-				this.handlePoopAnimationComplete(gameState);
+				this.handlePoopAnimationComplete(roomId, gameState);
 				break;
 			case "diceAnimation":
-				this.handleDiceAnimationComplete(gameState);
+				this.handleDiceAnimationComplete(roomId, gameState);
 				break;
-			// 他のアクションタイプも必要に応じて追加
 		}
 
-		this.updateGameState(roomId, gameState);
 		this.clientReadyStates.delete(roomId);
 	}
 
-	private handlePoopAnimationComplete(gameState: GameState): void {
+	private handleInitAnimationComplete(
+		roomId: string,
+		gameState: GameState
+	): void {
 		const currentPlayer = gameState.players.find((p) => p.current);
 		if (currentPlayer) {
 			currentPlayer.action = ActionState.ROLL;
 		}
+		this.io.to(roomId).emit("initAnimationComplete", {
+			playerSynchronized: true,
+		});
 	}
 
-	private handleDiceAnimationComplete(gameState: GameState): void {
+	private handlePoopAnimationComplete(
+		roomId: string,
+		gameState: GameState
+	): void {
+		const currentPlayer = gameState.players.find((p) => p.current);
+		if (currentPlayer) {
+			currentPlayer.action = ActionState.ROLL;
+		}
+		this.io
+			.to(roomId)
+			.emit("poopAnimationComplete", { playerSynchronized: true });
+	}
+
+	private handleDiceAnimationComplete(
+		roomId: string,
+		gameState: GameState
+	): void {
 		const currentPlayer = gameState.players.find((p) => p.current);
 		if (currentPlayer) {
 			currentPlayer.action = ActionState.INCOME;
 		}
-	}
-
-	private updateGameState(roomId: string, gameState: GameState): void {
-		this.gameStates.set(roomId, gameState);
 		this.io
 			.to(roomId)
-			.emit("gameStateUpdate", {
-				success: true,
-				emitGameState: gameState,
-			});
+			.emit("diceAnimationComplete", { playerSynchronized: true });
 	}
 
 	public setGameState(roomId: string, gameState: GameState): void {

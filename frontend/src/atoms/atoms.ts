@@ -62,9 +62,20 @@ export const rollingAtom = atom<boolean>({
 	default: false,
 });
 
+export const showActionAtom = atom<{ flg: boolean; message: string }>({
+	key: "showActionAtom",
+	default: { flg: false, message: "" },
+});
+
 // うんちの結果を表示するかどうかの状態を管理するAtom
 export const showPoopResultsAtom = atom<boolean>({
 	key: "showPoopResultsAtom",
+	default: false,
+});
+
+// ダイスのパネルを表示するかどうかの状態を管理するAtom
+export const showDicePanelAtom = atom<boolean>({
+	key: "showDicePanelAtom",
 	default: false,
 });
 
@@ -74,8 +85,6 @@ export const showDiceResultAtom = atom<boolean>({
 	default: false,
 });
 
-// const [poopResults, setPoopResults] = useState<ResultPoops[]>([]);
-// ↑と同じAtom
 export const poopResultsAtom = atom<ResultPoops[] | null>({
 	key: "poopResultsAtom",
 	default: null,

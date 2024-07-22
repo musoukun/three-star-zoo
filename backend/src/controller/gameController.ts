@@ -9,7 +9,6 @@ import {
 	ActionState,
 	ResultPoops,
 } from "../types/types";
-import { RoomRepository } from "../repository/RoomRepository";
 import { EffectService } from "../services/EffectService";
 import { LockStepManager } from "./LockStepManager";
 import { Server } from "socket.io";
@@ -17,33 +16,18 @@ import { Server } from "socket.io";
 const prisma = new PrismaClient();
 
 export class GameController {
-	private lockStepManager: LockStepManager;
-
 	constructor(
 		private gameService: GameService = new GameService(prisma),
 		private roomService: RoomService = new RoomService(prisma),
-		private effectService: EffectService = new EffectService(prisma),
-		io: Server
-	) {
-		this.lockStepManager = new LockStepManager(io);
-		this.lockStepManager.setupLockStep();
-	}
-
-	async updateGameStateWithLockStep(
-		roomId: string,
-		gameState: GameState
-	): Promise<void> {
-		this.lockStepManager.setGameState(roomId, gameState);
-		// ゲーム状態の更新をクライアントに通知
-		await this.roomService.updateRoomWithGameState(roomId, gameState);
-	}
+		private effectService: EffectService = new EffectService(prisma)
+	) {}
 
 	async handleStartGame(
 		roomId: string,
 		playerId: string,
 		players: Player[],
 		response: (success: boolean, gameState: GameState | null) => void
-	): Promise<GameState> {
+	): Promise<{ updatedGameState: GameState; roomId: string }> {
 		const room = await this.roomService.getRoomById(roomId);
 		if (!room) {
 			throw new Error("Room not found");
@@ -51,6 +35,7 @@ export class GameController {
 		//todo 後でチェック処理に使用するかも
 		console.log("ゲーム開始した人", playerId);
 		console.log("プレイヤー一覧", players);
+		console.log("ルームID", roomId);
 
 		// プレイヤーの一覧をセットする
 		const initialGameState: GameState =
@@ -66,7 +51,10 @@ export class GameController {
 		response(true, updatedGameState as unknown as GameState);
 
 		// owner以外のプレイヤーにゲーム開始の通知を送る
-		return updatedGameState;
+		return {
+			updatedGameState: updatedGameState as unknown as GameState,
+			roomId: roomId,
+		};
 	}
 
 	async handleCageClick(
