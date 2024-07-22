@@ -9,9 +9,19 @@ const DiceMesh: React.FC<{
 	result: number;
 	diceResults: number[];
 	index: number;
-}> = ({ result, diceResults, index }) => {
-	const fbx = useFBX("../../public/dice.fbx"); // パスを適切に調整してください
-	const texture = useLoader(THREE.TextureLoader, diceTexture); // パスを適切に調整してください
+	isAnimationComplete: boolean;
+	animationDuration: number;
+	rollingSpeed: number;
+}> = ({
+	result,
+	diceResults,
+	index,
+	isAnimationComplete,
+	animationDuration,
+	rollingSpeed,
+}) => {
+	const fbx = useFBX("../../public/dice.fbx");
+	const texture = useLoader(THREE.TextureLoader, diceTexture);
 	const mesh = fbx.children[0] as THREE.Mesh;
 	const geometry = mesh.geometry;
 
@@ -20,15 +30,10 @@ const DiceMesh: React.FC<{
 	);
 
 	useEffect(() => {
-		const timer = setTimeout(
-			() => {
-				setAnimationState("showing");
-			},
-			2000 + index * 500
-		); // Stagger the dice stopping
-
-		return () => clearTimeout(timer);
-	}, [index]);
+		if (isAnimationComplete) {
+			setAnimationState("showing");
+		}
+	}, [isAnimationComplete]);
 
 	const diceRotations = [
 		{ x: 0, y: -0.5 * Math.PI, z: 0 },
@@ -39,6 +44,8 @@ const DiceMesh: React.FC<{
 		{ x: 0, y: 0.5 * Math.PI, z: 0 },
 	];
 
+	const totalRotations = Math.PI * 4 * rollingSpeed;
+
 	return (
 		<motion.mesh
 			geometry={geometry}
@@ -47,17 +54,18 @@ const DiceMesh: React.FC<{
 			animate={animationState}
 			variants={{
 				rolling: {
-					rotateX: [0, Math.PI * 4],
-					rotateY: [0, Math.PI * 4],
-					rotateZ: [0, Math.PI * 4],
+					rotateX: [0, totalRotations, diceRotations[result - 1].x],
+					rotateY: [0, totalRotations, diceRotations[result - 1].y],
+					rotateZ: [0, totalRotations, diceRotations[result - 1].z],
 					y: [0, 3, 0],
 					transition: {
-						duration: 2,
-						repeat: Infinity,
-						repeatType: "loop",
+						duration: animationDuration, // アニメーション時間
+						times: [0, 0.4, 1],
+						ease: ["easeIn", "easeOut"],
 					},
 				},
 				showing: {
+					// サイコロの目を表示するアニメーション
 					rotateX: diceRotations[result - 1].x,
 					rotateY: diceRotations[result - 1].y,
 					rotateZ: diceRotations[result - 1].z,
@@ -66,8 +74,19 @@ const DiceMesh: React.FC<{
 				},
 			}}
 		>
-			<meshStandardMaterial map={texture} />
+			<meshStandardMaterial
+				map={texture} // テクスチャを適用
+				emissive={new THREE.Color(0x000000)} // 発光色
+				emissiveIntensity={0.2} // 発光強度
+				metalness={2} // 金属感
+				roughness={1} // 粗さ
+				lightMapIntensity={1} // ライトマップの強度
+				aoMapIntensity={1} // 環境光遮蔽マップの強度
+				envMapIntensity={1} // 環境マップの強度
+				displacementScale={1} // 変位スケール
+			/>
 		</motion.mesh>
 	);
 };
+
 export default DiceMesh;

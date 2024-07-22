@@ -130,7 +130,11 @@ const GameBoard: React.FC<GameBoardProps> = ({
 					{showDiceResult && diceResult && (
 						<DiceAnimation
 							diceResults={diceResult}
-							onAnimationComplete={handleDiceAnimationComplete}
+							onAnimationComplete={() =>
+								console.log("Animation completed")
+							}
+							animationDuration={1.4} // x秒間のアニメーション
+							rollingSpeed={2} // 1秒あたりx回転
 						/>
 					)}
 
@@ -156,7 +160,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 			{showPoopResults && poopResults && (
 				<ResultDisplay
 					results={poopResults}
-					duration={1000}
+					duration={500}
 					onClose={handleClosePoopResults}
 					onAnimationComplete={() =>
 						notifyAnimationComplete("poopAnimation")
@@ -171,10 +175,10 @@ const GameBoard: React.FC<GameBoardProps> = ({
 					isBold={true}
 					isItalic={false}
 					opacity={0.8}
-					speed={0.8}
+					speed={0.5}
 					fontSize="70px"
 					fontFamily="Roboto"
-					duration={2.4}
+					duration={1} // 何秒で消えるか
 					onAnimationComplete={() =>
 						notifyAnimationComplete("initAnimation")
 					}
