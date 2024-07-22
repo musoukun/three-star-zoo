@@ -1,6 +1,6 @@
 import React from "react";
 import { Animal } from "../../../types/types";
-import DiceRoll from "./DiceRoll";
+import DiceRoll from "../../Dice/DiceRoll";
 import AnimalButton from "./AnimalButton";
 import { ActionState } from "../../../types/ActionState";
 import { useGameState } from "../../../hooks/useGameState";

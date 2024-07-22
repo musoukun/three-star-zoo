@@ -217,15 +217,18 @@ export class GameController {
 	async handleProcessEffects(
 		roomId: string,
 		playerId: string,
-		diceResult: number
+		diceResult: number[]
 	): Promise<GameState> {
 		const room = await this.gameService.isValidateGameState(roomId);
 		let gameState = room.gameState as unknown as GameState;
 
+		// diceの配列の値を合計
+		const totalDice = diceResult.reduce((prev, current) => prev + current);
+
 		gameState = await this.effectService.processEffects(
 			gameState,
 			playerId,
-			diceResult
+			totalDice
 		);
 
 		return await this.roomService.updateRoomWithGameState(

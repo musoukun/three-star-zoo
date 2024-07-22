@@ -13,6 +13,7 @@ import {
 	poopResultsAtom,
 	showActionAtom,
 	showDicePanelAtom,
+	showDiceResultAtom,
 	showPoopResultsAtom,
 } from "../atoms/atoms";
 import { useSetRecoilState } from "recoil";
@@ -23,7 +24,7 @@ export const useSocketIO = (
 	playerId: string
 ) => {
 	const setShowPoopResults = useSetRecoilState<boolean>(showPoopResultsAtom);
-	const setShowDiceResult = useSetRecoilState<boolean>(showPoopResultsAtom);
+	const setShowDiceResult = useSetRecoilState<boolean>(showDiceResultAtom);
 	const setPoopResults = useSetRecoilState<ResultPoops[] | null>(
 		poopResultsAtom
 	);

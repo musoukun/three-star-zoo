@@ -9,18 +9,20 @@ import OtherPlayersSection from "./OtherPlayer/OtherPlayersSection";
 import GameInfo from "./GameInfo";
 import ResultDisplay from "./ResultDisplay";
 import AnimalCardsSection from "./AnimalShop/AnimalCardSection";
-import DiceRollAnimation from "./DiceRollAnimation";
+import DiceRollAnimation from "./Dice/DiceMesh";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import {
 	diceResultAtom,
 	poopResultsAtom,
 	showActionAtom,
 	showDicePanelAtom,
+	showDiceResultAtom,
 	showPoopResultsAtom,
 } from "../atoms/atoms";
 import { ErrorBoundary } from "react-error-boundary";
 import BoardPanel from "./PlayArea/BoardPanel";
 import ActionPhaseNotifier from "./ActionPhaseNotifier";
+import DiceAnimation from "./Dice/DiceAnimation";
 
 interface GameBoardProps {
 	socket: Socket;
@@ -62,7 +64,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	const [diceResult, setDiceResult] = useRecoilState<number[] | null>(
 		diceResultAtom
 	);
-	const showDiceResult = useRecoilValue<boolean>(showPoopResultsAtom);
+	const showDiceResult = useRecoilValue<boolean>(showDiceResultAtom);
 	const setShowDicePanel = useSetRecoilState<boolean>(showDicePanelAtom);
 	const showAction = useRecoilValue<{ flg: boolean; message: string }>(
 		showActionAtom
@@ -125,9 +127,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
 							currentPlayerId={gameState?.currentPlayer?.id}
 						/>
 					</div>
-					{showDiceResult && diceResult !== null && (
-						<DiceRollAnimation
-							result={diceResult}
+					{showDiceResult && diceResult && (
+						<DiceAnimation
+							diceResults={diceResult}
 							onAnimationComplete={handleDiceAnimationComplete}
 						/>
 					)}
