@@ -2,13 +2,21 @@
 import React from "react";
 import { Cage, Player } from "../../types/types";
 import { getAnimalImage } from "../../utils/importAnimalImages";
+import PlayerSelectionButton from "../PlayerSelectionButton";
 
 interface OtherPlayerProps {
 	player: Player;
 	isCurrentTurn: boolean;
+	onPlayerSelect?: (selectedPlayerId: string) => void;
+	actionText?: string;
 }
 
-const OtherPlayer: React.FC<OtherPlayerProps> = ({ player, isCurrentTurn }) => {
+const OtherPlayer: React.FC<OtherPlayerProps> = ({
+	player,
+	isCurrentTurn,
+	onPlayerSelect,
+	actionText,
+}) => {
 	const renderCage = (cageNumber: string, cage: Cage) => (
 		<div
 			key={cageNumber}
@@ -55,6 +63,14 @@ const OtherPlayer: React.FC<OtherPlayerProps> = ({ player, isCurrentTurn }) => {
 		>
 			<div className="flex justify-between items-center mb-2">
 				<h5 className="text-base font-bold">{player.name}</h5>
+				{onPlayerSelect && actionText && (
+					<PlayerSelectionButton
+						playerId={player.id as string}
+						playerName={player.name}
+						action={actionText}
+						onSelect={onPlayerSelect}
+					/>
+				)}
 				<div className="flex items-center">
 					{isCurrentTurn && (
 						<span className="bg-blue-500 text-white px-2 py-1 rounded mr-2">

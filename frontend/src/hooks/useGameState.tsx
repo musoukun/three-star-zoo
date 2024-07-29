@@ -61,18 +61,4 @@ export const useGameState = () => {
 		setRolling,
 		playerId,
 	};
-
-	return {
-		...gameStateData,
-		updateGameState,
-		setRolling,
-		playerId,
-	};
-
-	return {
-		...gameStateData,
-		updateGameState,
-		setRolling,
-		playerId,
-	};
 };

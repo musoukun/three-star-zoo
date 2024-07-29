@@ -1,4 +1,4 @@
-import { GameState, Player, ResultPoops } from "../types/types";
+import { EffectResults, GameState, Player, ResultPoops } from "../types/types";
 import { atom, atomFamily, selectorFamily } from "recoil";
 
 // 現在自分のターン中のプレイヤー情報を表すAtom
@@ -93,4 +93,44 @@ export const poopResultsAtom = atom<ResultPoops[] | null>({
 export const diceResultAtom = atom<number[] | null>({
 	key: "diceResultAtom",
 	default: null,
+});
+
+export const showLoadingAtom = atom<boolean>({
+	key: "showLoadingAtom",
+	default: false,
+});
+
+export const loadingMessageAtom = atom<string>({
+	key: "loadingMessageAtom",
+	default: "",
+});
+
+export const showPlayerSelectionAtom = atom<boolean>({
+	key: "showPlayerSelectionAtom",
+	default: false,
+});
+
+export const showChoiceModalAtom = atom<boolean>({
+	key: "showChoiceModalAtom",
+	default: false,
+});
+
+export const choicesAtom = atom<string[]>({
+	key: "choicesAtom",
+	default: [],
+});
+
+export const effectResultsAtom = atom<EffectResults>({
+	key: "effectResultsAtom",
+	default: [],
+});
+
+export const showEffectResultsAtom = atom<boolean>({
+	key: "showEffectResultsAtom",
+	default: false,
+});
+
+export const currentEffectIndexAtom = atom<number>({
+	key: "currentEffectIndexAtom",
+	default: 0,
 });

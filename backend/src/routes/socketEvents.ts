@@ -14,7 +14,7 @@ export class SocketEventHandler {
 	private prisma: PrismaClient;
 	private gameService: GameService;
 	private roomService: RoomService;
-	private effectService: EffectService;
+
 	private gameController: GameController;
 	private roomReposiotry: RoomRepository;
 	private lockStepManager: LockStepManager;
@@ -25,11 +25,11 @@ export class SocketEventHandler {
 		this.gameService = new GameService(prisma);
 		this.roomService = new RoomService(prisma);
 		this.roomReposiotry = new RoomRepository(prisma);
-		this.effectService = new EffectService(prisma);
+
 		this.gameController = new GameController(
 			this.gameService,
 			this.roomService,
-			this.effectService
+			io
 		);
 
 		this.lockStepManager = new LockStepManager(io);
@@ -214,7 +214,7 @@ export class SocketEventHandler {
 					await this.gameController.handleProcessEffects(
 						data.roomId,
 						data.playerId,
-						data.diceResult
+						socket.id
 					);
 				this.emitGameState(
 					true,
@@ -222,12 +222,69 @@ export class SocketEventHandler {
 					socket.id,
 					data.roomId
 				);
+
+				// 効果処理の結果を全プレイヤーに送信
+				this.io
+					.to(data.roomId)
+					.emit(
+						"effectProcessingComplete",
+						updatedGameState.effectResults
+					);
 			} catch (error) {
 				console.error("Error in processEffects:", error);
 				socket.emit("gameError", {
 					message: "Failed to process effects",
 				});
 			}
+		});
+
+		socket.on("playerSelection", async (data) => {
+			const { roomId, playerId, selectedPlayerId } = data;
+			this.io
+				.to(roomId)
+				.emit("playerSelectionResult", { selectedPlayerId });
+		});
+
+		socket.on("choiceSelection", async (data) => {
+			const { roomId, playerId, selectedChoice } = data;
+			console.log(
+				`Received choiceSelection: ${selectedChoice} from player ${playerId}`
+			);
+			try {
+				const updatedGameState =
+					await this.gameController.handleChoiceSelection(
+						roomId,
+						playerId,
+						selectedChoice
+					);
+				this.emitGameState(true, updatedGameState, socket.id, roomId);
+			} catch (error) {
+				console.error("Error in choiceSelection:", error);
+				socket.emit("gameError", {
+					message: "Failed to process choice selection",
+				});
+			}
+		});
+
+		// 新しいイベントハンドラを追加
+		socket.on("waitingForPlayerSelection", (data) => {
+			const { roomId, playerId } = data;
+			this.io.to(roomId).emit("waitForPlayerSelection", { playerId });
+		});
+
+		socket.on("waitingForPlayerChoice", (data) => {
+			const { roomId, playerId } = data;
+			this.io.to(roomId).emit("waitForPlayerChoice", { playerId });
+		});
+
+		socket.on("playerSelectionComplete", (data) => {
+			const { roomId } = data;
+			this.io.to(roomId).emit("playerSelectionComplete");
+		});
+
+		socket.on("playerChoiceComplete", (data) => {
+			const { roomId } = data;
+			this.io.to(roomId).emit("playerChoiceComplete");
 		});
 	}
 

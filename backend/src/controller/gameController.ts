@@ -8,6 +8,7 @@ import {
 	Animal,
 	ActionState,
 	ResultPoops,
+	PlayerEffectResult,
 } from "../types/types";
 import { EffectService } from "../services/EffectService";
 import { LockStepManager } from "./LockStepManager";
@@ -16,10 +17,16 @@ import { Server } from "socket.io";
 const prisma = new PrismaClient();
 
 export class GameController {
+	private socketId: string = "";
 	constructor(
 		private gameService: GameService = new GameService(prisma),
 		private roomService: RoomService = new RoomService(prisma),
-		private effectService: EffectService = new EffectService(prisma)
+		private io: Server,
+		private effectService: EffectService = new EffectService(
+			prisma,
+			io,
+			gameService
+		)
 	) {}
 
 	async handleStartGame(
@@ -144,7 +151,7 @@ export class GameController {
 			),
 		};
 
-		// プレイヤーのアクションを更新
+		// プレイヤーのアクションを更新;
 		const updateAction = this.gameService.updatePlayerAction(
 			updatePoops,
 			playerId,
@@ -195,14 +202,15 @@ export class GameController {
 			ActionState.INCOME
 		);
 
+		// diceResultをGamestateに反映
+		updatedGameState.diceResult = diceResult;
+
 		// ゲームの状態を更新
 		const updateGamaStateData: GameState =
 			await this.roomService.updateRoomWithGameState(
 				room.id,
 				updatedGameState
 			);
-
-		updateGamaStateData.diceResult = diceResult;
 
 		return updateGamaStateData;
 	}
@@ -217,23 +225,55 @@ export class GameController {
 	async handleProcessEffects(
 		roomId: string,
 		playerId: string,
-		diceResult: number[]
+		socketId: string
 	): Promise<GameState> {
 		const room = await this.gameService.isValidateGameState(roomId);
-		let gameState = room.gameState as unknown as GameState;
+		let gameState: GameState = room.gameState as unknown as GameState;
 
-		// diceの配列の値を合計
-		const totalDice = diceResult.reduce((prev, current) => prev + current);
+		const totalDice = (gameState.diceResult as number[]).reduce(
+			(prev, current) => prev + current
+		);
 
-		gameState = await this.effectService.processEffects(
+		let updatedGameState: GameState =
+			await this.effectService.processEffects(
+				gameState,
+				playerId,
+				socketId,
+				roomId,
+				totalDice
+			);
+
+		updatedGameState = this.gameService.updatePlayerAction(
+			updatedGameState as GameState,
+			playerId,
+			ActionState.TRADE
+		);
+
+		updatedGameState = await this.roomService.updateRoomWithGameState(
+			room.id,
+			updatedGameState
+		);
+
+		return updatedGameState;
+	}
+
+	async handleChoiceSelection(
+		roomId: string,
+		playerId: string,
+		selectedChoice: string
+	): Promise<GameState> {
+		const room = await this.gameService.isValidateGameState(roomId);
+		let gameState: GameState = room.gameState as unknown as GameState;
+
+		const updatedGameState = await this.effectService.processChoiceEffect(
 			gameState,
 			playerId,
-			totalDice
+			selectedChoice
 		);
 
 		return await this.roomService.updateRoomWithGameState(
 			room.id,
-			gameState
+			updatedGameState
 		);
 	}
 }

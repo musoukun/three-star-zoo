@@ -57,10 +57,10 @@ export class LockStepManager {
 		roomId: string,
 		gameState: GameState
 	): void {
-		const currentPlayer = gameState.players.find((p) => p.current);
-		if (currentPlayer) {
-			currentPlayer.action = ActionState.ROLL;
-		}
+		// const currentPlayer = gameState.players.find((p) => p.current);
+		// if (currentPlayer) {
+		// 	currentPlayer.action = ActionState.ROLL;
+		// }
 		this.io.to(roomId).emit("initAnimationComplete", {
 			playerSynchronized: true,
 		});
@@ -70,10 +70,10 @@ export class LockStepManager {
 		roomId: string,
 		gameState: GameState
 	): void {
-		const currentPlayer = gameState.players.find((p) => p.current);
-		if (currentPlayer) {
-			currentPlayer.action = ActionState.ROLL;
-		}
+		// const currentPlayer = gameState.players.find((p) => p.current);
+		// if (currentPlayer) {
+		// 	currentPlayer.action = ActionState.ROLL;
+		// }
 		this.io
 			.to(roomId)
 			.emit("poopAnimationComplete", { playerSynchronized: true });
@@ -83,10 +83,10 @@ export class LockStepManager {
 		roomId: string,
 		gameState: GameState
 	): void {
-		const currentPlayer = gameState.players.find((p) => p.current);
-		if (currentPlayer) {
-			currentPlayer.action = ActionState.INCOME;
-		}
+		// const currentPlayer = gameState.players.find((p) => p.current);
+		// if (currentPlayer) {
+		// 	currentPlayer.action = ActionState.INCOME;
+		// }
 		this.io
 			.to(roomId)
 			.emit("diceAnimationComplete", { playerSynchronized: true });

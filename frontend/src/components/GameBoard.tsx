@@ -1,28 +1,44 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { Socket } from "socket.io-client";
-import { AnimalCard as AnimalCardType, ResultPoops } from "../types/types";
+import {
+	AnimalCard as AnimalCardType,
+	EffectResults,
+	ResultPoops,
+} from "../types/types";
 import { useGameState } from "../hooks/useGameState";
 import { useSocketIO } from "../hooks/useSocketIO";
 import OtherPlayersSection from "./OtherPlayer/OtherPlayersSection";
 
 import GameInfo from "./GameInfo";
-import ResultDisplay from "./ResultDisplay";
 import AnimalCardsSection from "./AnimalShop/AnimalCardSection";
-import DiceRollAnimation from "./Dice/DiceMesh";
+
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import {
-	diceResultAtom,
+	choicesAtom,
+	currentEffectIndexAtom,
+	effectResultsAtom,
+	loadingMessageAtom,
 	poopResultsAtom,
 	showActionAtom,
+	showChoiceModalAtom,
 	showDicePanelAtom,
 	showDiceResultAtom,
+	showEffectResultsAtom,
+	showLoadingAtom,
+	showPlayerSelectionAtom,
 	showPoopResultsAtom,
 } from "../atoms/atoms";
 import { ErrorBoundary } from "react-error-boundary";
 import BoardPanel from "./PlayArea/BoardPanel";
 import ActionPhaseNotifier from "./ActionPhaseNotifier";
 import DiceAnimation from "./Dice/DiceAnimation";
+import PoopResults from "./PoopResults";
+import EffectResult from "./EffectResult";
+import LoadingOverlay from "./LoadingOverlay";
+import ChoiceModal from "./ChoiceModal";
 
 interface GameBoardProps {
 	socket: Socket;
@@ -39,7 +55,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	const {
 		gameState,
 		myPlayer,
-
 		updateGameState,
 		playerId,
 		currentPlayer,
@@ -49,10 +64,15 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
 	// ソケット通信に関する関数を取得
 	const {
+		setDiceResult,
+		diceResult,
 		emitCageClick,
 		emitRollDice,
 		listenForGameStateUpdate,
 		notifyAnimationComplete,
+		emitPlayerSelection,
+		emitPoopAction,
+		emitChoiceSelection,
 	} = useSocketIO(socket, roomId, playerId);
 
 	// ローカルの状態管理
@@ -61,14 +81,34 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	const [poopResults, setPoopResults] = useRecoilState<ResultPoops[] | null>(
 		poopResultsAtom
 	);
-	const [diceResult, setDiceResult] = useRecoilState<number[] | null>(
-		diceResultAtom
-	);
-	const showDiceResult = useRecoilValue<boolean>(showDiceResultAtom);
+
+	const [showDiceResult, setShowDiceResult] =
+		useRecoilState<boolean>(showDiceResultAtom);
 	const setShowDicePanel = useSetRecoilState<boolean>(showDicePanelAtom);
 	const showAction = useRecoilValue<{ flg: boolean; message: string }>(
 		showActionAtom
 	);
+	const showPlayerSelection = useRecoilValue<boolean>(
+		showPlayerSelectionAtom
+	);
+
+	const [showLoading, setShowLoading] =
+		useRecoilState<boolean>(showLoadingAtom);
+	const [loadingMessage, setLoadingMessage] =
+		useRecoilState(loadingMessageAtom);
+
+	const [showEffectResult, setShowEffectResult] = useRecoilState<boolean>(
+		showEffectResultsAtom
+	);
+	const [currentEffectIndex, setCurrentEffectIndex] = useRecoilState<number>(
+		currentEffectIndexAtom
+	);
+
+	const effectResults = useRecoilValue(effectResultsAtom);
+
+	const [showChoiceModal, setShowChoiceModal] =
+		useRecoilState(showChoiceModalAtom);
+	const [choices, setChoices] = useRecoilState<string[]>(choicesAtom);
 
 	// ゲーム状態の更新をリッスンするEffect
 	useEffect(() => {
@@ -79,22 +119,21 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
 	// サイコロを振る処理
 	const handleRollDice = useCallback(
-		// diceCount: サイコロの数
 		(diceCount: number) => {
-			setRolling(true); // サイコロを振っている状態をセット
+			setRolling(true);
 			setShowDicePanel(false);
+			setShowDiceResult(true); // アニメーション開始時にtrueに設定
 
 			emitRollDice(diceCount, (success: boolean) => {
-				// ここのCallback使ってない
 				if (success) {
 					console.log("Dice roll successful");
 				} else {
 					console.error("Dice roll failed");
 				}
-				setRolling(false); // サイコロを振り終わった状態をセット
+				setRolling(false);
 			});
 		},
-		[emitRollDice, setRolling]
+		[emitRollDice, setRolling, setShowDicePanel, setShowDiceResult]
 	);
 
 	// クライアントごとのAnimationが完了したときの処理
@@ -105,14 +144,63 @@ const GameBoard: React.FC<GameBoardProps> = ({
 	}, [setShowPoopResults, setPoopResults, notifyAnimationComplete]);
 
 	const handleDiceAnimationComplete = useCallback(() => {
-		setDiceResult(null);
+		// console.log("Animation complete. Dice results:", resultsRef);
+		// todo:この時点でRecoilのdiceResultがnullになっているのはなぜ？→useEffectの中でsetDiceResultを使っているため
+		setShowDiceResult(false); // アニメーション完了時にfalseに設定
 		notifyAnimationComplete("diceAnimation");
-	}, [setDiceResult, notifyAnimationComplete]);
+	}, [notifyAnimationComplete, setDiceResult]);
 
 	// ゲーム状態がロードされていない場合のローディング表示
 	if (!gameState || !gameState.players) {
 		return <div>Loading...</div>;
 	}
+
+	const handlePlayerSelect = useCallback(
+		(selectedPlayerId: string) => {
+			if (!showPlayerSelection) return;
+			emitPlayerSelection(selectedPlayerId);
+			setShowLoading(true);
+			setLoadingMessage("他のプレイヤーの選択を待っています...");
+		},
+		[
+			showPlayerSelection,
+			emitPlayerSelection,
+			setShowLoading,
+			setLoadingMessage,
+		]
+	);
+
+	const handleEffectComplete = useCallback(() => {
+		if (currentEffectIndex < (effectResults?.length ?? 0) - 1) {
+			setCurrentEffectIndex((prev) => prev + 1);
+		} else {
+			setShowEffectResult(false);
+			setCurrentEffectIndex(0);
+			handleEffectResultsComplete();
+		}
+	}, [
+		currentEffectIndex,
+		effectResults,
+		setCurrentEffectIndex,
+		setShowEffectResult,
+	]);
+
+	const handleEffectResultsComplete = useCallback(() => {
+		// 効果処理の結果表示が終わったときの処理をここに記述
+		console.log("Effect results display completed");
+		// 例: 次のフェーズに進む
+		// moveToNextPhase();
+	}, []);
+
+	const handleChoiceSelect = useCallback(
+		(selectedChoice: string) => {
+			if (!showChoiceModal) return;
+			emitChoiceSelection(selectedChoice);
+		},
+		[showChoiceModal, emitChoiceSelection]
+	);
+
+	console.log("diceResult@GameBoard", diceResult);
 
 	return (
 		<div className="flex h-screen bg-[#f0e6d2] font-crimson-text">
@@ -125,14 +213,20 @@ const GameBoard: React.FC<GameBoardProps> = ({
 						<OtherPlayersSection
 							players={otherPlayers}
 							currentPlayerId={gameState?.currentPlayer?.id}
+							onPlayerSelect={
+								showPlayerSelection
+									? handlePlayerSelect
+									: undefined
+							}
+							actionText={
+								showPlayerSelection ? "選択" : undefined
+							}
 						/>
 					</div>
 					{showDiceResult && diceResult && (
 						<DiceAnimation
 							diceResults={diceResult}
-							onAnimationComplete={() =>
-								console.log("Animation completed")
-							}
+							onAnimationComplete={handleDiceAnimationComplete}
 							animationDuration={1.4} // z秒間のアニメーション
 							rollingSpeed={2} // 1秒あたりx回転
 						/>
@@ -154,17 +248,29 @@ const GameBoard: React.FC<GameBoardProps> = ({
 					</ErrorBoundary>
 				</div>
 			</div>
-			{/* <div className="w-1/6 p-2 bg-[#e8f1d3] overflow-y-auto">
+			<div className="w-1/6 p-2 bg-[#e8f1d3] overflow-y-auto">
 				<GameInfo currentPlayer={currentPlayer} gameState={gameState} />
-			</div> */}
+			</div>
 			{showPoopResults && poopResults && (
-				<ResultDisplay
+				<PoopResults
 					results={poopResults}
 					duration={500}
 					onClose={handleClosePoopResults}
 					onAnimationComplete={() =>
 						notifyAnimationComplete("poopAnimation")
 					}
+				/>
+			)}
+			{showLoading && <LoadingOverlay message={loadingMessage} />}
+			{showChoiceModal && (
+				<ChoiceModal choices={choices} onSelect={handleChoiceSelect} />
+			)}
+			{showEffectResult && effectResults && (
+				<EffectResult
+					result={effectResults[currentEffectIndex]}
+					onComplete={handleEffectComplete}
+					displayInterval={600} // 0.3秒ごとに表示
+					nextPlayerDelay={2300} // 2秒後に次のプレイヤーの結果を表示
 				/>
 			)}
 			{showAction.flg && (

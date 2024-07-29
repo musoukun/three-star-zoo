@@ -64,7 +64,8 @@ export type GameState = {
 	roundNumber: number;
 	version: number;
 	poopsResult?: ResultPoops[];
-	diceResult?: number[];
+	effectResults?: EffectResults;
+	diceResult?: number[]; // サイコロの結果を格納する配列
 	isTestMode?: boolean;
 };
 
@@ -103,3 +104,25 @@ export interface ResultPoops {
 	poopCost: number; // 1匹あたりのうんちコスト
 	subtotal: number; // その動物の小計（animalCount * poopCost）
 }
+
+// 個々の効果の結果を表す型
+export type EffectResult = {
+	animalId: string;
+	description: string;
+};
+
+// プレイヤーごとの効果処理結果を表す型
+export type PlayerEffectResult = {
+	playerId: string;
+	playerName: string;
+	effects: EffectResult[];
+	initialCoins: number;
+	finalCoins: number;
+	coinDifference: number;
+	initialStars: number;
+	finalStars: number;
+	starDifference: number;
+};
+
+// 全プレイヤーの効果処理結果を含む配列の型
+export type EffectResults = PlayerEffectResult[];

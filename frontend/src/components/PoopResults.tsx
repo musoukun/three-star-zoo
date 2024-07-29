@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getAnimalImage } from "../utils/importAnimalImages";
 import { ResultPoops } from "../types/types";
 
-interface ResultDisplayProps {
+interface PoopResultsProps {
 	results: ResultPoops[];
 	duration?: number; // 表示時間（ミリ秒）
 	onClose: () => void;
 	onAnimationComplete: () => void;
 }
 
-const ResultDisplay: React.FC<ResultDisplayProps> = ({
+const PoopResults: React.FC<PoopResultsProps> = ({
 	results,
 	duration,
 	onClose,
@@ -108,4 +108,4 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
 	);
 };
 
-export default ResultDisplay;
+export default PoopResults;

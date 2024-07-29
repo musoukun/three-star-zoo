@@ -37,14 +37,19 @@ const ActionPanel: React.FC<ActionPanelProps> = ({
 	const inventory = myPlayerInventory;
 
 	console.log(
-		" phase " +
+		" phase:" +
 			phase +
-			" isCurrentTurn " +
+			" isCurrentTurn:" +
 			isCurrentTurn +
-			" action " +
+			" action:" +
 			action
 	);
-	console.log("showDicePanel " + showDicePanel);
+	console.log("showDicePanel:" + showDicePanel);
+
+	const sumDiceResult = (diceResult: number[] | undefined): number => {
+		if (!diceResult) return 0;
+		return diceResult.reduce((acc, cur) => acc + cur, 0);
+	};
 
 	return (
 		<div className="w-1/3">
@@ -86,7 +91,7 @@ const ActionPanel: React.FC<ActionPanelProps> = ({
 									<h3 className="text-lg font-bold">
 										ダイスの結果
 									</h3>
-									<p>結果: {diceResult}</p>
+									<p>結果: {sumDiceResult(diceResult)}</p>
 								</div>
 							)}
 						</div>

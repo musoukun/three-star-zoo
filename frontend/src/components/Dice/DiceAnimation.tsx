@@ -1,43 +1,44 @@
-// DiceAnimationComponent.tsx
-import React, { useEffect, useState } from "react";
+// DiceAnimation.tsx
+import React, { useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import DiceMesh from "./DiceMesh";
-import { useRecoilValue } from "recoil";
-import { diceResultAtom } from "../../atoms/atoms";
 
 type DiceProps = {
 	diceResults: number[];
 	onAnimationComplete: () => void;
-	animationDuration?: number; // アニメーション時間（秒）
-	rollingSpeed?: number; // 回転速度（1秒あたりの回転数）
+	animationDuration?: number;
+	rollingSpeed?: number;
 };
 
 const DiceAnimation: React.FC<DiceProps> = ({
 	diceResults,
 	onAnimationComplete,
-	animationDuration = 4, // デフォルト値は4秒
-	rollingSpeed = 2, // デフォルト値は1秒あたり2回転
+	animationDuration = 4,
+	rollingSpeed = 2,
 }) => {
-	const diceResult = useRecoilValue<number[] | null>(diceResultAtom);
-	const [isAnimationComplete, setIsAnimationComplete] = useState(false);
+	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
 	useEffect(() => {
-		const timer = setTimeout(
+		timerRef.current = setTimeout(
 			() => {
-				setIsAnimationComplete(true);
+				//何故かdiceResultsがnullでUpdateされる
+
 				onAnimationComplete();
 			},
-			animationDuration * 1000 + diceResults.length * 500 // アニメーション時間 + サイコロの数 * 0.5秒
+			animationDuration * 1000 + diceResults.length * 500
 		);
 
-		return () => clearTimeout(timer);
-	}, [diceResults, onAnimationComplete, animationDuration]);
+		return () => {
+			if (timerRef.current) {
+				clearTimeout(timerRef.current);
+			}
+		};
+	}, []); // 依存配列は空
 
 	return (
 		<Canvas camera={{ position: [0, 5, 10], fov: 50 }}>
-			<ambientLight intensity={2} /> {/* 環境光の強度を上げる */}
+			<ambientLight intensity={2} />
 			<pointLight position={[10, 10, 10]} intensity={10} />
-			{/* ポイントライトの強度を上げる ↑*/}
 			<spotLight
 				position={[0, 10, 0]}
 				angle={0.5}
@@ -49,9 +50,8 @@ const DiceAnimation: React.FC<DiceProps> = ({
 				<DiceMesh
 					key={index}
 					result={result}
-					diceResults={diceResult as number[]}
+					diceResults={diceResults as number[]}
 					index={index}
-					isAnimationComplete={isAnimationComplete}
 					animationDuration={animationDuration}
 					rollingSpeed={rollingSpeed}
 				/>
