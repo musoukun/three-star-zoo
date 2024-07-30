@@ -95,7 +95,11 @@ export class GameController {
 				playerId,
 				ActionState.POOP
 			);
+			updatedGameState =
+				this.gameService.moveToNextPlayer(updatedGameState);
 		}
+
+		// 次のプレイヤーにターンを渡す
 
 		// プレイヤー全員の初期配置が完了している場合、ゲームフェーズを更新
 		if (this.gameService.isInitialPlacementComplete(updatedGameState)) {

@@ -5,7 +5,7 @@ import { useGameState } from "../hooks/useGameState";
 const ActionProgressBar: React.FC = () => {
 	const { myPlayerAction } = useGameState();
 
-	const currentAction: ActionState = myPlayerAction;
+	const currentAction: ActionState = myPlayerAction as ActionState;
 
 	const actions = [
 		{ key: "poop", icon: "💩", label: "うんちをもらう" },

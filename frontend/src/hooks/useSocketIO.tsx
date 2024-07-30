@@ -26,6 +26,7 @@ import {
 	showPoopResultsAtom,
 } from "../atoms/atoms";
 import { useRecoilState, useSetRecoilState } from "recoil";
+import { useGameState } from "./useGameState";
 
 export const useSocketIO = (
 	socket: Socket,
@@ -57,6 +58,8 @@ export const useSocketIO = (
 
 	const setShowEffectResult = useSetRecoilState(showEffectResultsAtom);
 	const setCurrentEffectIndex = useSetRecoilState(currentEffectIndexAtom);
+
+	const { updateGameState } = useGameState();
 
 	/**
 	 * ケージをクリックしたときの処理
@@ -260,6 +263,8 @@ export const useSocketIO = (
 			const handleGameStateUpdate = (emitGameState: EmitGameState) => {
 				console.log("Received updatedGameState", emitGameState);
 				callback(emitGameState.emitGameState);
+				// ゲームの状態更新
+				updateGameState(emitGameState.emitGameState);
 				// ゲームの状態が更新されたときの処理
 				handleGameEvent(emitGameState.emitGameState);
 			};

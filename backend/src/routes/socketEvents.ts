@@ -56,12 +56,16 @@ export class SocketEventHandler {
 		socketId: string,
 		roomId: string
 	): void {
+		// ルーム内の全クライアントに更新を送信
 		this.io
-			.to(socketId)
+			.to(roomId)
 			.emit("gameStateUpdate", { success, emitGameState: gameState });
 
 		// LockStepManagerにGameStateを設定
 		this.lockStepManager.setGameState(roomId, gameState);
+
+		// デバッグ用：更新を送信したことをログに記録
+		console.log(`Emitted gameStateUpdate to room ${roomId}`);
 	}
 	/**
 	 * ルーム関連のイベントを設定
