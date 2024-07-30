@@ -172,16 +172,16 @@ export const useSocketIO = (
 		const myplayerData: Player | undefined = players.find(
 			(player) => player.id === playerId
 		);
+		console.log("myplayerData : ", myplayerData);
 		const currentPlayer = players.find((player) => player.current);
 
 		// Poopアクションの結果を計算
 		if (
 			updatedGameState.phase === "main" &&
-			myplayerData?.action === ActionState.POOP &&
-			myplayerData?.current
+			updatedGameState.players.every((p) => p.action === ActionState.POOP)
 		) {
 			console.log("caluculating poop result");
-			setShowAction({ flg: true, message: "うんち発生" });
+			setShowAction({ flg: true, message: "発生" });
 		}
 
 		// Poopアクションの結果を受け取ったらshowPoopResultsを実行
